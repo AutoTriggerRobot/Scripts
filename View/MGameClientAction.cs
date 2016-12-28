@@ -89,6 +89,50 @@ public class MGameClientAction
     //所有出牌区域的牌旋转角都为零，即面对主角
     Quaternion qua = Quaternion.Euler(0,0,0);
 
+
+    //初始化
+    void Init()
+    {
+        //初始化界面绑定
+        mGameClientView = new MGameClientView();
+
+        #region 主角区域
+        //出牌区域容器
+        outCardPoint_H = new Container(mGameClientView.Host.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_HorF);
+        //抽牌区域容器
+        group_H = new Container(mGameClientView.Host.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
+        //主玩家
+        hostUser = new UserCard(mGameClientView.Host, outCardPoint_H);
+        #endregion
+
+        #region 对家区域
+        //出牌区域容器
+        outCardPoint_F = new Container(mGameClientView.Front.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_HorF);
+        //抽牌区域容器
+        group_F = new Container(mGameClientView.Front.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
+        //对面家
+        frontUser = new UserCard(mGameClientView.Front, outCardPoint_F);
+        #endregion
+
+        #region 右家区域
+        //出牌区域容器
+        outCardPoint_R = new Container(mGameClientView.Right.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_LorR);
+        //抽牌区域容器
+        group_R = new Container(mGameClientView.Right.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
+        //右玩家
+        rightUser = new UserCard(mGameClientView.Right, outCardPoint_R);
+        #endregion
+
+        #region 左家区域
+        //出牌区域容器
+        outCardPoint_L = new Container(mGameClientView.Left.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_LorR);
+        //抽牌区域容器
+        group_L = new Container(mGameClientView.Left.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
+        //左玩家
+        leftUser = new UserCard(mGameClientView.Left, outCardPoint_L);
+        #endregion
+    }
+
     public MGameClientAction()
     {
         //初始化
@@ -117,51 +161,8 @@ public class MGameClientAction
         outCardPoint_R.ResetContainer();
     }
 
-    //初始化
-    void Init()
-    {
-        //初始化界面绑定
-        mGameClientView = new MGameClientView();
-
-        #region 主角区域
-        //出牌区域容器
-        outCardPoint_H = new Container(mGameClientView.Host.outCardPoint, GlobalData.OUT_CARD_Len, -1,ContainerTypes.OutCard_HorF);
-        //抽牌区域容器
-        group_H = new Container(mGameClientView.Host.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
-        //主玩家
-        hostUser = new UserCard(mGameClientView.Host,group_H);
-        #endregion
-
-        #region 对家区域
-        //出牌区域容器
-        outCardPoint_F = new Container(mGameClientView.Front.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_HorF);
-        //抽牌区域容器
-        group_F = new Container(mGameClientView.Front.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
-        //对面家
-        frontUser = new UserCard(mGameClientView.Front,group_F);
-        #endregion
-
-        #region 右家区域
-        //出牌区域容器
-        outCardPoint_R = new Container(mGameClientView.Right.outCardPoint, GlobalData.OUT_CARD_Len, -1,ContainerTypes.OutCard_LorR);
-        //抽牌区域容器
-        group_R = new Container(mGameClientView.Right.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
-        //右玩家
-        rightUser = new UserCard(mGameClientView.Right,group_R);
-        #endregion
-
-        #region 左家区域
-        //出牌区域容器
-        outCardPoint_L = new Container(mGameClientView.Left.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_LorR);
-        //抽牌区域容器
-        group_L = new Container(mGameClientView.Left.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
-        //左玩家
-        leftUser = new UserCard(mGameClientView.Left,group_L);
-        #endregion
-    }
-
     //添加牌库（发牌前要确认好发牌顺序这会影响取牌方向)
-    IEnumerable AddGroup()
+    public IEnumerator AddGroup()
     {
         //判断整条链表是否不饱和
         while(group_R.IsAllNotFull)
@@ -169,7 +170,7 @@ public class MGameClientAction
             //获取要加入容器的预设
             Transform tran = spawnPool.Spawn("Mahjong");
             //加入容器 并获取容器为预设分配的位置
-            Vector3 target = group_R.AddItem(tran, GlobalData.MAHJONG_Width, GlobalData.MAHJONG_Thickness);
+            Vector3 target = group_R.AddItem(tran);
             //预设移动到分配位置
             iTween.MoveTo(tran.gameObject, target, .5f);
             //可以降低获取的速度
@@ -179,7 +180,7 @@ public class MGameClientAction
     }
 
     //开始发牌
-    IEnumerable AddHandCard(UserCard user,Transform card)
+    public IEnumerator AddHandCard(UserCard user,Transform card)
     {
 
         //判断手牌是否已满并且牌库未空
@@ -197,7 +198,7 @@ public class MGameClientAction
             //随便计算个与目的地方向相同位置为三分一的高增加0.5f的坐标
             Vector3 temp = (target - tran.position).normalized * (target - tran.position).magnitude * .75f + new Vector3(tran.position.x, tran.position.y + .1f, tran.position.z);
             iTween.MoveTo(tran.gameObject, temp, .2f);
-            yield return new WaitForSeconds(.15f);
+            yield return new WaitForSeconds(.1f);
             //移动到分配位置
             iTween.MoveTo(tran.gameObject, target, .5f);
         }
@@ -205,21 +206,9 @@ public class MGameClientAction
     }
 
     //发完牌后翻开所有玩家的手牌
-    IEnumerable GetCard()
+    public IEnumerator GetCard(UserCard user)
     {
-        foreach(MahjongPrefab item in hostUser.handCard)
-        {
-            item.animator.SetBool("GetCard", true);
-        }
-        foreach(MahjongPrefab item in frontUser.handCard)
-        {
-            item.animator.SetBool("GetCard", true);
-        }
-        foreach(MahjongPrefab item in leftUser.handCard)
-        {
-            item.animator.SetBool("GetCard", true);
-        }
-        foreach(MahjongPrefab item in rightUser.handCard)
+        foreach(MahjongPrefab item in user.handCard)
         {
             item.animator.SetBool("GetCard", true);
         }
@@ -227,7 +216,7 @@ public class MGameClientAction
     }
 
     //翻开某个玩家的所有手牌
-    IEnumerable TurnOverCard(UserCard user)
+    public IEnumerator TurnOverCard(UserCard user)
     {
         foreach(MahjongPrefab item in user.handCard)
         {
@@ -237,7 +226,7 @@ public class MGameClientAction
     }
 
     //添加暗杠
-    IEnumerable AddAnGang(UserCard user)
+    public IEnumerator AddAnGang(UserCard user)
     {
         if(user.anGangPoint.IsNotFull)
         {
@@ -245,9 +234,9 @@ public class MGameClientAction
             Transform tran = spawnPool.Spawn("AnGang");
             //加入容器并获取分配坐标
             Vector3 target = user.anGangPoint.AddItem(tran, GlobalData.AN_GANG);
-            //只使用x轴做动画
-            tran.position = new Vector3(tran.position.x, target.y
-                , target.z);
+            //只使用本地坐标x轴做动画
+            tran.position = target + tran.right*.5f;
+            //tran.position = target + tran.right*Vector3.Dot(tran.right,(target - Vector3.zero));
             //此处可播放特效start 
 
             //特效end
@@ -261,17 +250,17 @@ public class MGameClientAction
     }
 
     //添加明杠
-    IEnumerable AddMingGang(UserCard user)
+    public IEnumerator AddMingGang(UserCard user)
     {
         if(user.mingGangPoint.IsNotFull)
         {
             //获取预设
             Transform tran = spawnPool.Spawn("MingGang");
             //加入容器并获取分配坐标
-            Vector3 target = user.mingGangPoint.AddItem(tran, GlobalData.MAHJONG_Width);
-            //只使用x轴做动画
-            tran.position = new Vector3(tran.position.x, target.y
-                , target.z);
+            Vector3 target = user.mingGangPoint.AddItem(tran, GlobalData.MING_GANG);
+            //只使用本地坐标x轴做动画
+            tran.position = target + tran.right*.5f;
+            //tran.position = target + tran.right * Vector3.Dot(tran.right, (target - Vector3.zero));
             //此处可播放特效start 
 
             //特效end
@@ -285,7 +274,7 @@ public class MGameClientAction
     }
 
     //特殊牌 & 功能牌
-    IEnumerable AddSpacialCard(UserCard user,Transform tran)
+    public IEnumerator AddSpacialCard(UserCard user,Transform tran)
     {
         if(user.spacialCard.IsNotFull)
         {
@@ -305,14 +294,14 @@ public class MGameClientAction
     }
 
     //出牌区域
-    IEnumerable AddOutCard(UserCard user,Transform tran)
+    public IEnumerator AddOutCard(UserCard user,Transform tran)
     {
         if(user.outCardPoint.IsNotFull)
         {
             if(tran != null)
             {
                 //需要换行的排序需要最后一个参数用来确定换行距离
-                Vector3 target = user.outCardPoint.AddItem(tran, GlobalData.MAHJONG_High, GlobalData.MAHJONG_Width);
+                Vector3 target = user.outCardPoint.AddItem(tran);
 
                 //此处可播放特效start
                 tran.GetComponentInChildren<Animator>().SetBool("OutCard", true);

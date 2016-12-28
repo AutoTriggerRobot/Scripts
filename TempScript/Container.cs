@@ -218,15 +218,33 @@ public class Container:IEnumerable
     }
 
     /// <summary>
-    /// 输出物体位置坐标 如果所有容器都满了返回true 
+    /// 输出物体位置坐标 如果所有容器都满了返回true 特殊容器只用传一个参数
     /// </summary>
     /// <param name="tran">预设</param>
     /// <param name="interest">间隔</param>
-    /// <param name="pos">将加入在当前容器的位置</param>
     /// <param name="exp">换行占用间隔</param>
     /// <returns></returns>
-    public Vector3 AddItem(Transform tran,float interest,float exp = 0)
+    public Vector3 AddItem(Transform tran,float interest = -1,float exp = -1)
     {
+        if(interest == -1)
+            switch(type)
+            {
+                case ContainerTypes.Group:
+                    interest = GlobalData.MAHJONG_Width;
+                    exp = GlobalData.MAHJONG_Thickness;
+                    break;
+                case ContainerTypes.Nomal:
+                    interest = GlobalData.MAHJONG_Width;
+                    break;
+                case ContainerTypes.OutCard_HorF:
+                    interest = GlobalData.MAHJONG_Width;
+                    exp = GlobalData.MAHJONG_High;
+                    break;
+                case ContainerTypes.OutCard_LorR:
+                    interest = GlobalData.MAHJONG_High;
+                    exp = GlobalData.MAHJONG_Width;
+                    break;
+            }
         //如果不是头容器则上一个容器执行添加操作
         if(previousContainer != null && previousContainer.IsNotFull)
             return previousContainer.AddItem(tran, interest, exp);

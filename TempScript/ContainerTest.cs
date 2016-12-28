@@ -114,13 +114,13 @@ public class ContainerTest : MonoBehaviour
 
         if(GUILayout.Button("打出第一张牌"))
         {
-            Transform tran = mGameClientAction.rightUser.handCard.GetCard();
+            Transform tran = mGameClientAction.hostUser.handCard.GetCard();
             StartCoroutine(GetTest(CardTest.outCard,tran));
         }
 
         if(GUILayout.Button("打出最后一张牌"))
         {
-            Transform tran = mGameClientAction.rightUser.handCard.GetCard(0);
+            Transform tran = mGameClientAction.hostUser.handCard.GetCard(0);
             StartCoroutine(GetTest(CardTest.outCard, tran));
         }
 
@@ -136,7 +136,7 @@ public class ContainerTest : MonoBehaviour
 
         if(GUILayout.Button("功能牌"))
         {
-            Transform tran = mGameClientAction.rightUser.handCard.GetCard();
+            Transform tran = mGameClientAction.hostUser.handCard.GetCard();
             StartCoroutine(GetTest(CardTest.spacialCard,tran));
         }
 
@@ -148,18 +148,23 @@ public class ContainerTest : MonoBehaviour
 
     IEnumerator GetTest(CardTest type,Transform carditem = null)
     {
-        bool isFull = false;
+        //bool isFull = false;
         switch(type)
         {
             case CardTest.anGang:
+                yield return mGameClientAction.AddAnGang(mGameClientAction.hostUser);
+                /*
                 if(mGameClientAction.rightUser.anGangPoint.IsNotFull)
                 {
                     Transform tran = spawnPool.Spawn("AnGang");
                     Vector3 target = mGameClientAction.rightUser.anGangPoint.AddItem(tran, GlobalData.AN_GANG);
                     iTween.MoveTo(tran.gameObject, target, .5f);
                 }
+                */
                 break;
             case CardTest.group:
+                yield return mGameClientAction.AddGroup();
+                /*
                 while(mGameClientAction.group_R.IsAllNotFull)
                 {
                     //要加入容器的预设
@@ -170,8 +175,12 @@ public class ContainerTest : MonoBehaviour
                     iTween.MoveTo(tran.gameObject, target, .5f);
                     //yield return new WaitForSeconds(.01f);
                 };
+                */
                 break;
             case CardTest.handCard:
+                yield return mGameClientAction.AddHandCard(mGameClientAction.hostUser,carditem);
+                yield return mGameClientAction.GetCard(mGameClientAction.hostUser);
+                /*
                 while(!isFull)
                 {
                     if(mGameClientAction.rightUser.handCard.IsNotFull)
@@ -208,9 +217,11 @@ public class ContainerTest : MonoBehaviour
                 foreach(MahjongPrefab item in mGameClientAction.rightUser.handCard)
                 {
                     item.transform.GetComponentInChildren<Animator>().SetBool("GetCard", true);
-                }
+                }*/
                 break;
             case CardTest.mingGang:
+                yield return mGameClientAction.AddMingGang(mGameClientAction.hostUser);
+                /*
                 if(mGameClientAction.rightUser.mingGangPoint.IsNotFull)
                 {
                     Transform tran = spawnPool.Spawn("MingGang");
@@ -220,24 +231,29 @@ public class ContainerTest : MonoBehaviour
                     if(isFull)
                         tran.gameObject.SetActive(false);
                 }
+                */
                 break;
             case CardTest.outCard:
-                if(mGameClientAction.outCardPoint_R.IsNotFull)
+                yield return mGameClientAction.AddOutCard(mGameClientAction.hostUser, carditem);
+                /*
+                if(mGameClientAction.outCardPoint_H.IsNotFull)
                 {
                     Transform tran = carditem;
                     if(tran != null)
                     {
                         //需要换行的排序 需要最后一个参数
-                        Vector3 target = mGameClientAction.outCardPoint_R.AddItem(tran, GlobalData.MAHJONG_High, GlobalData.MAHJONG_Width);
+                        Vector3 target = mGameClientAction.outCardPoint_H.AddItem(tran, GlobalData.MAHJONG_High, GlobalData.MAHJONG_Width);
                         tran.GetComponentInChildren<Animator>().SetBool("OutCard",true);
                         yield return new WaitForSeconds(.2f);
                         //使出牌区域的牌面向主角
                         tran.rotation = qua;
                         iTween.MoveTo(tran.gameObject, target, .5f);
                     }
-                }
+                }*/
                 break;
             case CardTest.spacialCard:
+                yield return mGameClientAction.AddSpacialCard(mGameClientAction.hostUser, carditem);
+                /*
                 if(mGameClientAction.rightUser.spacialCard.IsNotFull)
                 {
                     Transform tran = carditem;
@@ -247,7 +263,7 @@ public class ContainerTest : MonoBehaviour
                         tran.GetComponentInChildren<Animator>().SetBool("TurnOverCard", true);
                         iTween.MoveTo(tran.gameObject, target, .5f);
                     }
-                }
+                }*/
                 break;
         }
     }

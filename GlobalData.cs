@@ -33,7 +33,7 @@ public static class GlobalData
     //各个组的容量
     public const int HANDCARD_Len = 14;     //手牌
     public const int MING_GANG_Len = 5;     //明杠
-    public const int AN_GANG_Len = 3;       //暗杠
+    public const int AN_GANG_Len = 5;       //暗杠
     public const int OUT_CARD_Len = 34;     //出牌记录
     public const int SPACIAL_CARD_Len = 4;  //功能牌
     public const int GROUP_Len = 34;        //牌库
