@@ -18,7 +18,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using PathologicalGames;
 
-public class MGameClientAction
+public class MGameClientAction:IDisposable
 {
     public struct UserCard
     {
@@ -33,12 +33,12 @@ public class MGameClientAction
         {
             handleCard = groove.handleCard;
             //声明向右排序普通容器
-            handCard = new Container(groove.handCard, GlobalData.HANDCARD_Len);
+            handCard = new Container(groove.handCard, GlobalData.HANDCARD_Count);
             //左排序普通容器
-            mingGangPoint = new Container(groove.mingGangPoint, GlobalData.MING_GANG_Len, 1);
-            anGangPoint = new Container(groove.anGangPoint, GlobalData.AN_GANG_Len, 1);
+            mingGangPoint = new Container(groove.mingGangPoint, GlobalData.MING_GANG_Count, 1);
+            anGangPoint = new Container(groove.anGangPoint, GlobalData.AN_GANG_Count, 1);
             //右排序普通容器
-            spacialCard = new Container(groove.spacialCard, GlobalData.SPACIAL_CARD_Len);
+            spacialCard = new Container(groove.spacialCard, GlobalData.SPACIAL_CARD_Count);
             //绑定外部声明的出牌区域
             this.outCardPoint = outCardPoint;
         }
@@ -50,6 +50,16 @@ public class MGameClientAction
             mingGangPoint.ResetContainer();
             anGangPoint.ResetContainer();
             spacialCard.ResetContainer();
+        }
+
+        //清理容器
+        public void Dispose()
+        {
+            handCard.Dispose();
+            mingGangPoint.Dispose();
+            anGangPoint.Dispose();
+            spacialCard.Dispose();
+            outCardPoint.Dispose();
         }
     }
 
@@ -98,36 +108,36 @@ public class MGameClientAction
 
         #region 主角区域
         //出牌区域容器
-        outCardPoint_H = new Container(mGameClientView.Host.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_HorF);
+        outCardPoint_H = new Container(mGameClientView.Host.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_HorF);
         //抽牌区域容器
-        group_H = new Container(mGameClientView.Host.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
+        group_H = new Container(mGameClientView.Host.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
         //主玩家
         hostUser = new UserCard(mGameClientView.Host, outCardPoint_H);
         #endregion
 
         #region 对家区域
         //出牌区域容器
-        outCardPoint_F = new Container(mGameClientView.Front.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_HorF);
+        outCardPoint_F = new Container(mGameClientView.Front.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_HorF);
         //抽牌区域容器
-        group_F = new Container(mGameClientView.Front.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
+        group_F = new Container(mGameClientView.Front.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
         //对面家
         frontUser = new UserCard(mGameClientView.Front, outCardPoint_F);
         #endregion
 
         #region 右家区域
         //出牌区域容器
-        outCardPoint_R = new Container(mGameClientView.Right.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_LorR);
+        outCardPoint_R = new Container(mGameClientView.Right.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_LorR);
         //抽牌区域容器
-        group_R = new Container(mGameClientView.Right.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
+        group_R = new Container(mGameClientView.Right.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
         //右玩家
         rightUser = new UserCard(mGameClientView.Right, outCardPoint_R);
         #endregion
 
         #region 左家区域
         //出牌区域容器
-        outCardPoint_L = new Container(mGameClientView.Left.outCardPoint, GlobalData.OUT_CARD_Len, -1, ContainerTypes.OutCard_LorR);
+        outCardPoint_L = new Container(mGameClientView.Left.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_LorR);
         //抽牌区域容器
-        group_L = new Container(mGameClientView.Left.group, GlobalData.GROUP_Len, -1, ContainerTypes.Group);
+        group_L = new Container(mGameClientView.Left.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
         //左玩家
         leftUser = new UserCard(mGameClientView.Left, outCardPoint_L);
         #endregion
@@ -159,6 +169,21 @@ public class MGameClientAction
         outCardPoint_H.ResetContainer();
         outCardPoint_L.ResetContainer();
         outCardPoint_R.ResetContainer();
+    }
+
+    //断开所有连接
+    public void BreakAllLink()
+    {
+        group_F.BreakLink();
+        group_H.BreakLink();
+        group_L.BreakLink();
+        group_F.BreakLink();
+    }
+
+    //手牌的容量会更具情况改变
+    public void SetHandCardCapacity(UserCard user,int len)
+    {
+        user.handCard.SetCapacity(len);
     }
 
     //添加牌库（发牌前要确认好发牌顺序这会影响取牌方向)
@@ -233,7 +258,7 @@ public class MGameClientAction
             //获取预设
             Transform tran = spawnPool.Spawn("AnGang");
             //加入容器并获取分配坐标
-            Vector3 target = user.anGangPoint.AddItem(tran, GlobalData.AN_GANG);
+            Vector3 target = user.anGangPoint.AddItem(tran, GlobalData.AN_GANG_Width);
             //只使用本地坐标x轴做动画
             tran.position = target + tran.right*.5f;
             //tran.position = target + tran.right*Vector3.Dot(tran.right,(target - Vector3.zero));
@@ -257,7 +282,7 @@ public class MGameClientAction
             //获取预设
             Transform tran = spawnPool.Spawn("MingGang");
             //加入容器并获取分配坐标
-            Vector3 target = user.mingGangPoint.AddItem(tran, GlobalData.MING_GANG);
+            Vector3 target = user.mingGangPoint.AddItem(tran, GlobalData.MING_GANG_Width);
             //只使用本地坐标x轴做动画
             tran.position = target + tran.right*.5f;
             //tran.position = target + tran.right * Vector3.Dot(tran.right, (target - Vector3.zero));
@@ -315,5 +340,18 @@ public class MGameClientAction
                 iTween.MoveTo(tran.gameObject, target, .5f);
             }
         }
+    }
+
+    //资源释放
+    public void Dispose()
+    {
+        hostUser.Dispose();
+        leftUser.Dispose();
+        rightUser.Dispose();
+        frontUser.Dispose();
+        group_F.Dispose();
+        group_H.Dispose();
+        group_L.Dispose();
+        group_R.Dispose();
     }
 }

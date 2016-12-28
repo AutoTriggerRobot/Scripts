@@ -71,10 +71,10 @@ public class ContainerTest : MonoBehaviour
 
         if(GUILayout.Button("断开连接"))
         {
-            mGameClientAction.group_R.BrokenLink();
-            mGameClientAction.group_L.BrokenLink();
-            mGameClientAction.group_H.BrokenLink();
-            mGameClientAction.group_F.BrokenLink();
+            mGameClientAction.group_R.BreakLink();
+            mGameClientAction.group_L.BreakLink();
+            mGameClientAction.group_H.BreakLink();
+            mGameClientAction.group_F.BreakLink();
         }
 
         if(GUILayout.Button("发牌"))

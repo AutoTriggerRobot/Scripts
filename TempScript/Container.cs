@@ -96,7 +96,7 @@ public class Container:IEnumerable
     }
 
     //断开所有连接
-    public void BrokenLink()
+    public void BreakLink()
     {
         previousContainer = null;
         nextContainer = null;
