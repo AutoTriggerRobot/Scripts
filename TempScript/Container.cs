@@ -19,8 +19,8 @@ using UnityEngine;
 
 public class Container:IEnumerable
 {
-    Container previousContainer = null;
-    Container nextContainer = null;
+    public Container previousContainer = null;
+    public Container nextContainer = null;
 
     //子物体
     List<MahjongPrefab> childrenList;
@@ -36,8 +36,8 @@ public class Container:IEnumerable
     ContainerTypes type;
     //遍历标志(用于遍历容器的时候做标记)
     bool isChange = false;
-
-    public Container NextContainer
+    /*
+    public Container nextContainer
     {
         get
         {
@@ -49,7 +49,7 @@ public class Container:IEnumerable
         }
     }
 
-    public Container PreviousContainer
+    public Container previousContainer
     {
         get
         {
@@ -60,13 +60,13 @@ public class Container:IEnumerable
             previousContainer = value;
         }
     }
-
+    */
     //重载运算附  用+表示连接两表  连接成功返回true
     public static bool operator +(Container Head, Container Tail)
     {
-        if(Head.NextContainer != null || Tail.previousContainer != null)
+        if(Head.nextContainer != null || Tail.previousContainer != null)
             return false;
-        Head.NextContainer = Tail;
+        Head.nextContainer = Tail;
         Tail.previousContainer = Head;
         return true;
     }
@@ -89,7 +89,7 @@ public class Container:IEnumerable
     }
 
     //初始化容器
-    public void ResetContainer()
+    public void Reset()
     {
         childrenList.Clear();
         itemnPoint = transform.position;
@@ -100,6 +100,7 @@ public class Container:IEnumerable
     {
         previousContainer = null;
         nextContainer = null;
+        Reset();
     }
 
     //只读遍历标志
@@ -203,6 +204,7 @@ public class Container:IEnumerable
         }
     }
 
+    //设置容量
     public void SetCapacity(int len)
     {
         capacity = len;
@@ -245,39 +247,65 @@ public class Container:IEnumerable
                     exp = GlobalData.MAHJONG_Width;
                     break;
             }
+        return AddMahjong(new MahjongPrefab(tran, interest, exp));
+    }
+
+    //加入子物体 功能同上
+    public Vector3 AddMahjong(MahjongPrefab mahjong)
+    {
+        //重新设置预设排列的间隔和行距信息
+        switch(type)
+        {
+            case ContainerTypes.Group:
+                mahjong.interest = GlobalData.MAHJONG_Width;
+                mahjong.exp = GlobalData.MAHJONG_Thickness;
+                break;
+            case ContainerTypes.Nomal:
+                mahjong.interest = GlobalData.MAHJONG_Width;
+                break;
+            case ContainerTypes.OutCard_HorF:
+                mahjong.interest = GlobalData.MAHJONG_Width;
+                mahjong.exp = GlobalData.MAHJONG_High;
+                break;
+            case ContainerTypes.OutCard_LorR:
+                mahjong.interest = GlobalData.MAHJONG_High;
+                mahjong.exp = GlobalData.MAHJONG_Width;
+                break;
+        }
+
         //如果不是头容器则上一个容器执行添加操作
         if(previousContainer != null && previousContainer.IsNotFull)
-            return previousContainer.AddItem(tran, interest, exp);
+            return previousContainer.AddMahjong(mahjong);
         else
         {
             //调整子物体旋转与容器一致
-            tran.rotation = transform.rotation;
+            mahjong.transform.rotation = transform.rotation;
             //待返回变量
-            Vector3 reTran;
+            Vector3 pointTemp;
             //容器未满
             if(IsNotFull)
             {
-                reTran = itemnPoint;
-                childrenList.Add(new MahjongPrefab(tran, interest, exp));
+                pointTemp = itemnPoint;
+                childrenList.Add(mahjong);
                 switch(type)
                 {
                     case ContainerTypes.Nomal:
                         //更改本地x轴偏移量
-                        itemnPoint += (direction * interest)*transform.right;
+                        itemnPoint += (direction * mahjong.interest) * transform.right;
                         break;
                     case ContainerTypes.Group:
                         //横排
                         if(childrenList.Count % (int)type == 0)
                         {
                             //更改本地x轴偏移量
-                            itemnPoint += (direction * interest) * transform.right;
+                            itemnPoint += (direction * mahjong.interest) * transform.right;
                             //更改本地y轴偏移量
-                            itemnPoint -= exp * transform.up;
+                            itemnPoint -= mahjong.exp * transform.up;
                         } else
                         //竖排
                         {
                             //更改本地y轴偏移量
-                            itemnPoint += exp * transform.up;
+                            itemnPoint += mahjong.exp * transform.up;
                         }
                         break;
                     default:
@@ -286,24 +314,77 @@ public class Container:IEnumerable
                         {
                             itemnPoint = transform.position;
                             //更改本地z轴偏移量
-                            itemnPoint += exp * transform.forward * (childrenList.Count / (int)type);
+                            itemnPoint += mahjong.exp * transform.forward * (childrenList.Count / (int)type);
                         } else
                         {
-                            itemnPoint += (direction * interest) * transform.transform.right;
+                            itemnPoint += (direction * mahjong.interest) * transform.transform.right;
                         }
                         break;
                 }
-                return reTran;
-            }else if(nextContainer != null)
+                return pointTemp;
+            } else if(nextContainer != null)
             {
-                  return nextContainer.AddItem(tran, interest, exp);
+                return nextContainer.AddMahjong(mahjong);
             }
-            return Vector3.zero;
+            throw new Debuger("麻将数量已达到上限");
         }
     }
 
-    //移除容器中index的物体 操作成功返回false  只有普通容器可以使用
-    public bool RemoveAt(int index)
+    //在容器index处插入
+    public Vector3 InsertAt(int index, MahjongPrefab mahjong)
+    {
+        //重新设置预设排列的间隔和行距信息
+        switch(type)
+        {
+            case ContainerTypes.Group:
+                mahjong.interest = GlobalData.MAHJONG_Width;
+                mahjong.exp = GlobalData.MAHJONG_Thickness;
+                break;
+            case ContainerTypes.Nomal:
+                mahjong.interest = GlobalData.MAHJONG_Width;
+                break;
+            case ContainerTypes.OutCard_HorF:
+                mahjong.interest = GlobalData.MAHJONG_Width;
+                mahjong.exp = GlobalData.MAHJONG_High;
+                break;
+            case ContainerTypes.OutCard_LorR:
+                mahjong.interest = GlobalData.MAHJONG_High;
+                mahjong.exp = GlobalData.MAHJONG_Width;
+                break;
+        }
+
+        if(IsNotFull && mahjong.transform != null)
+        {
+            if(type != ContainerTypes.Nomal)
+            {
+                throw new Debuger("容器类型：(" + type.ToString() + ") 不支持插入操作.");
+            }
+            if(index > childrenList.Count)
+            {
+                throw new Debuger("<Container::InsertAt>: index out of range");
+            }else if(index == childrenList.Count || IsEmpty)
+            {
+                return AddMahjong(mahjong);
+            }
+            //调整子物体旋转与容器一致
+            mahjong.transform.rotation = transform.rotation;
+            //待返回变量
+            Vector3 pointTemp = childrenList[index].transform.position;
+            childrenList.Insert(index, mahjong);
+            //重定位列表定位器 指向插入位置的后两个
+            itemnPoint = pointTemp + (direction * mahjong.interest) * transform.right;
+            //重排插入处后面的子物体
+            ReSort(type, index+1);
+            return pointTemp;
+        }
+        if(mahjong.transform)
+            throw new Debuger("容器类型：(" + type.ToString() + ") 已达到容量上限.");
+        else
+            throw new Debuger("手中的牌为空.");
+    }
+
+    //移除容器中index的物体 操作成功返回false
+    public void RemoveAt(int index)
     {
         if(childrenList.Count > 0)
         {
@@ -315,10 +396,8 @@ public class Container:IEnumerable
                 itemnPoint = transform.position;
                 ReSort(type);
             }
-            return true;
-        }
-        Debug.LogWarning("<Capaity::RemoveItem>: index out of range");
-        return false;
+        } else
+            throw new Debuger("<Capaity::RemoveItem>: index out of range");
     }
 
     /// <summary>
@@ -329,35 +408,44 @@ public class Container:IEnumerable
     /// <returns></returns>
     public Transform GetCard(int direction = 1, int len = 0)
     {
-        Transform tran;
-        try
-        {
+        Transform tran = GetMahjongCard(direction, len).transform;
+        if(tran)
+            return tran;
+        return null;
+    }
+
+    //获取预设 功能同上
+    public MahjongPrefab GetMahjongCard(int direction = 1, int len = 0)
+    {
+        MahjongPrefab mahjong = new MahjongPrefab();
+        //try
+        //{
             if(direction > 0)
             {
                 //如果当前容器不是末端则执行下一个容器
                 if(nextContainer != null && !nextContainer.IsEmpty)
                 {
-                    return nextContainer.GetCard(direction, len);
+                    return nextContainer.GetMahjongCard(direction, len);
                 }
                 if(!IsEmpty)
                 {
-                    tran = childrenList[childrenList.Count - 1 - len].transform;
+                    mahjong = childrenList[childrenList.Count - 1 - len];
                     //childrenList.RemoveAt(childrenList.Count - 1 - len);
                     RemoveAt(childrenList.Count - 1 - len);
-                    return tran;
+                    return mahjong;
                 }
                 if(previousContainer != null && !previousContainer.IsEmpty)
                 {
-                    return previousContainer.GetCard(direction, len);
+                    return previousContainer.GetMahjongCard(direction, len);
                 }
                 Debug.Log("麻将已经抽完");
-                return null;
+                return mahjong;
             } else
             {
                 //如果当前容器不是头 则执行上一个容器
                 if(previousContainer != null && !previousContainer.IsEmpty)
                 {
-                    return previousContainer.GetCard(direction, len);
+                    return previousContainer.GetMahjongCard(direction, len);
                 }
                 if(!IsEmpty)
                 {
@@ -367,47 +455,46 @@ public class Container:IEnumerable
                     //判断是不是最后一个 如果是就返回
                     if(childrenList.Count == 1)
                     {
-                        tran = childrenList[0].transform;
+                        mahjong = childrenList[0];
                         //childrenList.Clear();
-                        ResetContainer();
-                        return tran;
+                        Reset();
+                        return mahjong;
                     }
                     //判断最后一个的麻将上面有没麻将 
                     if(childrenList[0].transform.position.y < childrenList[1].transform.position.y)
                     {
-                        tran = childrenList[len].transform;
+                        mahjong = childrenList[len];
                         //childrenList.RemoveAt(len);
                         RemoveAt(len);
                     }
                     //如果没有且取的是最后一个麻将
                     else if(len <= 1)
                     {
-                        tran = childrenList[len - 1].transform;
+                        mahjong = childrenList[len - 1];
                         //childrenList.RemoveAt(len - 1);
                         RemoveAt(len - 1);
                     }
                     //如果最后一个麻将上面没有麻将 并且不是取最后一个
                     else
                     {
-                        tran = childrenList[len].transform;
+                        mahjong = childrenList[len];
                         childrenList.RemoveAt(len);
                     }
-                    return tran;
+                    return mahjong;
                 }
                 if(nextContainer != null)
                 {
-                    return nextContainer.GetCard(direction, len);
+                    return nextContainer.GetMahjongCard(direction, len);
                 }
 
                 Debug.Log("麻将已经抽完");
-                return null;
+                return mahjong;
             }
-        } catch
-        {
-            Debug.LogWarning("<Capaity::GetCard>: index out of range");
-            tran = null;
-            return tran;
-        }
+        //} catch
+        //{
+        //    Debug.LogWarning("<Capaity::GetCard>: index out of range");
+        //    return mahjong;
+        //}
     }
 
     //根据Transform获取列表位置index
@@ -416,23 +503,25 @@ public class Container:IEnumerable
         return childrenList.FindIndex(pre=>pre.transform == tran);
     }
 
-    //在列表中间移出物体后重新排列
-    void ReSort(ContainerTypes type)
+    //在列表中间移出物体后重新排列 index:从index开始重排
+    void ReSort(ContainerTypes type,int index = -1)
     {
+        if(index < 0)
+            index = 0;
         if(type == ContainerTypes.Nomal)
         {
-            for(int i = 0; i < childrenList.Count; ++i)
+            for(int i = index; i < childrenList.Count; ++i)
             {
                 Vector3 target = itemnPoint;
-                iTween.MoveTo(childrenList[i].transform.gameObject, target, .2f);
+                iTween.MoveTo(childrenList[i].transform.gameObject, target, .4f);
                 itemnPoint += (direction * childrenList[i].interest) * transform.right;
             }
         } else
         {
-            for(int i = 0;i < childrenList.Count; ++i)
+            for(int i = index; i < childrenList.Count; ++i)
             {
                 Vector3 target = itemnPoint;
-                iTween.MoveTo(childrenList[i].transform.gameObject, target, .2f);
+                iTween.MoveTo(childrenList[i].transform.gameObject, target, .4f);
                 if(i+1 % (int)type == 0)
                 {
                     itemnPoint = this.transform.position;
@@ -454,18 +543,27 @@ public class Container:IEnumerable
         }
     }
 
-    //可调用资源清理
+    //移除列表
     public void Dispose()
     {
         childrenList.Clear();
         childrenList = null;
-        //原头接原尾
-        if(previousContainer != null)
-            previousContainer.NextContainer = NextContainer;
+        //原头接原尾  如果没有 就设为null
+        if(previousContainer != null && nextContainer != null)
+        {
+            previousContainer.nextContainer = nextContainer;
+            nextContainer.previousContainer = previousContainer;
+        }else if(previousContainer != null)
+        {
+            previousContainer.nextContainer = null;
+        }else if(nextContainer != null)
+        {
+            nextContainer.previousContainer = null;
+        }
         //清除链表头
         previousContainer = null;
         //清除链表尾
-        NextContainer = null;
+        nextContainer = null;
         GC.SuppressFinalize(this);
     }
 }
@@ -478,7 +576,7 @@ public struct MahjongPrefab
     public float exp;  //容器子物体高（用于竖排）
     public Animator animator;
 
-    public MahjongPrefab(Transform tran, float interest, float exp = 0)
+    public MahjongPrefab(Transform tran, float interest, float exp)
     {
         this.transform = tran;
         this.animator = transform.GetComponentInChildren<Animator>();

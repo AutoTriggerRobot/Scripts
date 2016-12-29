@@ -22,7 +22,7 @@ public class MGameClientAction:IDisposable
 {
     public struct UserCard
     {
-        public Transform handleCard;        //刚摸到的牌
+        public Container handleCard;        //刚摸到的牌
         public Container handCard;          //手牌
         public Container mingGangPoint;     //明杠
         public Container anGangPoint;       //暗杠
@@ -31,7 +31,7 @@ public class MGameClientAction:IDisposable
 
         public UserCard(MahjongGrooves groove,Container outCardPoint)
         {
-            handleCard = groove.handleCard;
+            handleCard =new Container(groove.handleCard,GlobalData.HANDLECARD_Count);
             //声明向右排序普通容器
             handCard = new Container(groove.handCard, GlobalData.HANDCARD_Count);
             //左排序普通容器
@@ -46,15 +46,17 @@ public class MGameClientAction:IDisposable
         //重置容器
         public void Reset()
         {
-            handCard.ResetContainer();
-            mingGangPoint.ResetContainer();
-            anGangPoint.ResetContainer();
-            spacialCard.ResetContainer();
+            handleCard.Reset();
+            handCard.Reset();
+            mingGangPoint.Reset();
+            anGangPoint.Reset();
+            spacialCard.Reset();
         }
 
         //清理容器
         public void Dispose()
         {
+            handleCard.Dispose();
             handCard.Dispose();
             mingGangPoint.Dispose();
             anGangPoint.Dispose();
@@ -160,15 +162,15 @@ public class MGameClientAction:IDisposable
         leftUser.Reset();
         rightUser.Reset();
         //抽牌区域
-        group_R.ResetContainer();
-        group_L.ResetContainer();
-        group_H.ResetContainer();
-        group_F.ResetContainer();
+        group_R.Reset();
+        group_L.Reset();
+        group_H.Reset();
+        group_F.Reset();
         //出牌区域
-        outCardPoint_F.ResetContainer();
-        outCardPoint_H.ResetContainer();
-        outCardPoint_L.ResetContainer();
-        outCardPoint_R.ResetContainer();
+        outCardPoint_F.Reset();
+        outCardPoint_H.Reset();
+        outCardPoint_L.Reset();
+        outCardPoint_R.Reset();
     }
 
     //断开所有连接
@@ -177,7 +179,7 @@ public class MGameClientAction:IDisposable
         group_F.BreakLink();
         group_H.BreakLink();
         group_L.BreakLink();
-        group_F.BreakLink();
+        group_R.BreakLink();
     }
 
     //手牌的容量会更具情况改变
@@ -186,7 +188,7 @@ public class MGameClientAction:IDisposable
         user.handCard.SetCapacity(len);
     }
 
-    //添加牌库（发牌前要确认好发牌顺序这会影响取牌方向)
+    //洗牌（发牌前要确认好发牌顺序这会影响取牌方向)
     public IEnumerator AddGroup()
     {
         //判断整条链表是否不饱和
@@ -205,37 +207,37 @@ public class MGameClientAction:IDisposable
     }
 
     //开始发牌
-    public IEnumerator AddHandCard(UserCard user,Transform card)
+    public IEnumerator AddHandCard(UserCard user, MahjongPrefab card)
     {
 
         //判断手牌是否已满并且牌库未空
         if(user.handCard.IsNotFull && !group_H.IsAllEmpty)
         {
-            Transform tran;
+            MahjongPrefab mahjong;
             //传入牌优先
-            if(card)
-                tran = card;
+            if(card.transform)
+                mahjong = card;
             //默认取头牌
             else
-                tran = group_H.GetCard();
-            Vector3 target = user.handCard.AddItem(tran, GlobalData.MAHJONG_Width);
+                mahjong = group_H.GetMahjongCard();
+            Vector3 target = user.handCard.AddMahjong(mahjong);
             //先让牌提高一定高度（避免穿过其他牌获取）
             //随便计算个与目的地方向相同位置为三分一的高增加0.5f的坐标
-            Vector3 temp = (target - tran.position).normalized * (target - tran.position).magnitude * .75f + new Vector3(tran.position.x, tran.position.y + .1f, tran.position.z);
-            iTween.MoveTo(tran.gameObject, temp, .2f);
+            Vector3 temp = (target - mahjong.transform.position).normalized * (target - mahjong.transform.position).magnitude * .75f + new Vector3(mahjong.transform.position.x, mahjong.transform.position.y + .1f, mahjong.transform.position.z);
+            iTween.MoveTo(mahjong.transform.gameObject, temp, .2f);
             yield return new WaitForSeconds(.1f);
             //移动到分配位置
-            iTween.MoveTo(tran.gameObject, target, .5f);
-        }
+            iTween.MoveTo(mahjong.transform.gameObject, target, .3f);
+        }else
         Debug.Log("手牌已满");
     }
 
-    //发完牌后翻开所有玩家的手牌
-    public IEnumerator GetCard(UserCard user)
+    //发完牌后为玩家显示手牌
+    public IEnumerator DisplayCard(UserCard user)
     {
         foreach(MahjongPrefab item in user.handCard)
         {
-            item.animator.SetBool("GetCard", true);
+            item.animator.Play(GlobalData.ANIMA_GetCard);
         }
         yield return 0;
     }
@@ -245,9 +247,50 @@ public class MGameClientAction:IDisposable
     {
         foreach(MahjongPrefab item in user.handCard)
         {
-            item.animator.SetBool("TurnOverCard", true);
+            item.animator.Play(GlobalData.ANIMA_TurnOverCard);
         }
         yield return 0;
+    }
+
+    //摸牌 user：用户  card：指定要摸的牌
+    public IEnumerator GetCard(UserCard user,MahjongPrefab card)
+    {
+        if(user.handleCard.IsNotFull && !group_H.IsAllEmpty)
+        {
+            MahjongPrefab mahjong;
+            //传入牌优先
+            if(card.transform)
+                mahjong = card;
+            //默认取头牌
+            else
+                mahjong = group_H.GetMahjongCard();
+            Vector3 target = user.handleCard.AddMahjong(mahjong);
+            mahjong.animator.Play(GlobalData.ANIMA_GetCard);
+            yield return new WaitForSeconds(.2f);
+            //先让牌提高一定高度（避免穿过其他牌获取）
+            //随便计算个与目的地方向相同位置为三分一的高增加0.5f的坐标
+            Vector3 temp = (target - mahjong.transform.position).normalized * (target - mahjong.transform.position).magnitude * .75f + new Vector3(mahjong.transform.position.x, mahjong.transform.position.y + .1f, mahjong.transform.position.z);
+            iTween.MoveTo(mahjong.transform.gameObject, temp, .1f);
+            yield return new WaitForSeconds(.1f);
+            //移动到分配位置
+            iTween.MoveTo(mahjong.transform.gameObject, target, .3f);
+        }else
+        Debug.Log("手中的牌不能超过一个");
+    }
+
+    //将摸到的牌插入手牌中
+    public IEnumerator InsertToHandCard(UserCard user,int index, MahjongPrefab mahjong)
+    {
+        Vector3 target = user.handCard.InsertAt(index, mahjong);
+
+        //此处可播放特效start
+        mahjong.animator.Play(GlobalData.ANIMA_InsertCard);
+        yield return new WaitForSeconds(.1f);
+
+        //特效end
+
+        //开始移动到出牌区域
+        iTween.MoveTo(mahjong.transform.gameObject, target, .4f);
     }
 
     //添加暗杠
@@ -267,10 +310,10 @@ public class MGameClientAction:IDisposable
             //特效end
             //开始移动到暗杠区域
             iTween.MoveTo(tran.gameObject, target, .5f);
+            yield return 0;
         } else
         {
-            Debug.LogWarning("<MGameClientAction::AddAnGang>: 暗杠区域已满.");
-            yield return 0;
+            throw new Debuger("<MGameClientAction::AddAnGang>: 暗杠区域已满.");
         }
     }
 
@@ -299,50 +342,50 @@ public class MGameClientAction:IDisposable
     }
 
     //特殊牌 & 功能牌
-    public IEnumerator AddSpacialCard(UserCard user,Transform tran)
+    public IEnumerator AddSpacialCard(UserCard user,MahjongPrefab card)
     {
         if(user.spacialCard.IsNotFull)
         {
             //加入容器并获取分配坐标
-            Vector3 target = user.spacialCard.AddItem(tran, GlobalData.MAHJONG_Width);
+            Vector3 target = user.spacialCard.AddMahjong(card);
             //此处可播放特效start 
-            tran.GetComponentInChildren<Animator>().SetBool("TurnOverCard", true);
+            card.animator.Play(GlobalData.ANIMA_TurnOverCard);
 
             //特效end
             //开始移动到功能牌区域
-            iTween.MoveTo(tran.gameObject, target, .5f);
+            iTween.MoveTo(card.transform.gameObject, target, .5f);
+            yield return 0;
         } else
         {
-            Debug.LogWarning("<MGameClientAction::AddAnGang>: 功能牌区域已满.");
-            yield return 0;
+            throw new Debuger("<MGameClientAction::AddAnGang>: 功能牌区域已满.");
         }
     }
 
     //出牌区域
-    public IEnumerator AddOutCard(UserCard user,Transform tran)
+    public IEnumerator AddOutCard(UserCard user, MahjongPrefab card)
     {
         if(user.outCardPoint.IsNotFull)
         {
-            if(tran != null)
+            if(card.transform != null)
             {
                 //需要换行的排序需要最后一个参数用来确定换行距离
-                Vector3 target = user.outCardPoint.AddItem(tran);
+                Vector3 target = user.outCardPoint.AddMahjong(card);
 
                 //此处可播放特效start
-                tran.GetComponentInChildren<Animator>().SetBool("OutCard", true);
+                card.animator.Play(GlobalData.ANIMA_OutCard);
                 yield return new WaitForSeconds(.2f);
                 //使出牌区域的牌面向主角
-                tran.rotation = qua;
+                card.transform.rotation = qua;
 
                 //特效end
 
                 //开始移动到出牌区域
-                iTween.MoveTo(tran.gameObject, target, .5f);
+                iTween.MoveTo(card.transform.gameObject, target, .5f);
             }
         }
     }
 
-    //资源释放
+    //清理所有容器
     public void Dispose()
     {
         hostUser.Dispose();
