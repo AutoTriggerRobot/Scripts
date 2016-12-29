@@ -31,7 +31,6 @@ public static class GlobalData
     public const int MAHJONG_None = -1;
     public const int MAHJONG_PingHu = 0;
 
-
     //各个组的容量
     public const int HANDLECARD_Count = 1;    //手中的牌
     public const int HANDCARD_Count = 14;     //手牌

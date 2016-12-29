@@ -74,7 +74,7 @@ public class MGameClientAction:IDisposable
     //左家
     public UserCard leftUser;
 
-    /*公用牌*/
+    /*公用区域*/
 
     //主角区域公用牌
     public Container outCardPoint_H;
@@ -92,8 +92,17 @@ public class MGameClientAction:IDisposable
     public Container outCardPoint_L;
     public Container group_L;
 
+    //可接收一个int类型的回调委托
+    public delegate void Callback(int i = -1);
+
+    //色子运行时间
+    public float rollTime = .5f;
+
+    //游戏主程
+    MonoBehaviour gameClient;
+
     //视图中的部件(obj)
-    MGameClientView mGameClientView;
+    MGameClientView viewObj;
 
     //麻将的对象池
     SpawnPool spawnPool;
@@ -101,52 +110,120 @@ public class MGameClientAction:IDisposable
     //所有出牌区域的牌旋转角都为零，即面对主角
     Quaternion qua = Quaternion.Euler(0,0,0);
 
+    //色子
+    Transform diceA;
+    Transform diceB;
+
+    //色子旋转方向
+    int xEuler;
+    int yEuler;
+    int zEuler;
+    int supEuler;
+
+    //储存iTween参数设置
+    Hashtable diceAHash;
+    Hashtable diceBHash;
+
+    //色子旋转方向  输入点数
+    Quaternion SetDice(int num)
+    {
+        xEuler = UnityEngine.Random.Range(2, 6) * 360;
+        yEuler = UnityEngine.Random.Range(2, 6) * 360;
+        zEuler = UnityEngine.Random.Range(2, 6) * 360;
+        supEuler = UnityEngine.Random.Range(0, 360);
+        switch(num)
+        {
+            case 1:
+                return Quaternion.Euler(xEuler, supEuler + yEuler, zEuler);
+            case 2:
+                return Quaternion.Euler(xEuler + 90, supEuler + yEuler, supEuler + zEuler);
+            case 3:
+                return Quaternion.Euler(xEuler + 180, supEuler + yEuler, zEuler - 90);
+            case 4:
+                return Quaternion.Euler(xEuler, supEuler + yEuler, zEuler-90);
+            case 5:
+                return Quaternion.Euler(xEuler-90, supEuler + yEuler, zEuler);
+            case 6:
+                return Quaternion.Euler(xEuler, supEuler + yEuler, zEuler+180);
+            default:
+                Debug.Log(num + " 超出色子取值范围.");
+                return Quaternion.identity;
+        }
+    }
 
     //初始化
     void Init()
     {
         //初始化界面绑定
-        mGameClientView = new MGameClientView();
+        viewObj = new MGameClientView();
+
+        #region 色子动画设置
+        diceAHash = new Hashtable();
+        diceBHash = new Hashtable();
+
+        //设置路径
+        diceAHash.Add("path", viewObj.PathA);
+        diceBHash.Add("path", viewObj.PathB);
+
+        //移动特效
+        diceAHash.Add("easeType", iTween.EaseType.linear);
+        diceBHash.Add("easeType", iTween.EaseType.linear);
+
+        //移动时间
+        diceAHash.Add("time", rollTime);
+        diceBHash.Add("time", rollTime);
+
+        //结束时调用函数
+        //可以调用AnimationStart update end，默认调用自身，可以自定义设置
+        diceAHash.Add("oncomplete", "AnimationEnd");
+        diceBHash.Add("oncomplete", "AnimationEnd");
+
+        //结束时调用主程的 AnimationEnd
+        diceAHash.Add("oncompletetarget", gameClient.gameObject);
+        diceBHash.Add("oncompletetarget", gameClient.gameObject);
+
+        #endregion
 
         #region 主角区域
         //出牌区域容器
-        outCardPoint_H = new Container(mGameClientView.Host.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_HorF);
+        outCardPoint_H = new Container(viewObj.Host.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_HorF);
         //抽牌区域容器
-        group_H = new Container(mGameClientView.Host.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
+        group_H = new Container(viewObj.Host.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
         //主玩家
-        hostUser = new UserCard(mGameClientView.Host, outCardPoint_H);
+        hostUser = new UserCard(viewObj.Host, outCardPoint_H);
         #endregion
 
         #region 对家区域
         //出牌区域容器
-        outCardPoint_F = new Container(mGameClientView.Front.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_HorF);
+        outCardPoint_F = new Container(viewObj.Front.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_HorF);
         //抽牌区域容器
-        group_F = new Container(mGameClientView.Front.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
+        group_F = new Container(viewObj.Front.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
         //对面家
-        frontUser = new UserCard(mGameClientView.Front, outCardPoint_F);
+        frontUser = new UserCard(viewObj.Front, outCardPoint_F);
         #endregion
 
         #region 右家区域
         //出牌区域容器
-        outCardPoint_R = new Container(mGameClientView.Right.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_LorR);
+        outCardPoint_R = new Container(viewObj.Right.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_LorR);
         //抽牌区域容器
-        group_R = new Container(mGameClientView.Right.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
+        group_R = new Container(viewObj.Right.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
         //右玩家
-        rightUser = new UserCard(mGameClientView.Right, outCardPoint_R);
+        rightUser = new UserCard(viewObj.Right, outCardPoint_R);
         #endregion
 
         #region 左家区域
         //出牌区域容器
-        outCardPoint_L = new Container(mGameClientView.Left.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_LorR);
+        outCardPoint_L = new Container(viewObj.Left.outCardPoint, GlobalData.OUT_CARD_Count, -1, ContainerTypes.OutCard_LorR);
         //抽牌区域容器
-        group_L = new Container(mGameClientView.Left.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
+        group_L = new Container(viewObj.Left.group, GlobalData.GROUP_Count, -1, ContainerTypes.Group);
         //左玩家
-        leftUser = new UserCard(mGameClientView.Left, outCardPoint_L);
+        leftUser = new UserCard(viewObj.Left, outCardPoint_L);
         #endregion
     }
 
-    public MGameClientAction()
+    public MGameClientAction(MonoBehaviour gameClient)
     {
+        this.gameClient = gameClient;
         //初始化
         Init();
         //找到名为MahjongPool的对象池
@@ -171,6 +248,8 @@ public class MGameClientAction:IDisposable
         outCardPoint_H.Reset();
         outCardPoint_L.Reset();
         outCardPoint_R.Reset();
+        //重置对象池
+        spawnPool.DespawnAll();
     }
 
     //断开所有连接
@@ -188,8 +267,37 @@ public class MGameClientAction:IDisposable
         user.handCard.SetCapacity(len);
     }
 
+    //绑定洗牌顺序
+    public void CardDirection(byte i)
+    {
+        //绑定前断开所有连接
+        BreakAllLink();
+        Container temp;
+        switch(i)
+        {
+            case 0:
+                //主角开始洗牌
+                temp = group_H + group_R + group_F + group_L;
+                break;
+            case 1:
+                //右家开始
+                temp = group_R + group_F + group_L + group_H;
+                break;
+            case 2:
+                //对家开始
+                temp = group_F + group_L + group_H + group_R;
+                break;
+            case 3:
+                //左家开始
+                temp = group_L + group_H + group_R + group_F;
+                break;
+            default:
+                throw new Debuger("MGameClientAction::CardDirection: 发牌顺序超出范围.");
+        }
+    }
+
     //洗牌（发牌前要确认好发牌顺序这会影响取牌方向)
-    public IEnumerator AddGroup()
+    public IEnumerator AddGroup(Callback callback = null)
     {
         //判断整条链表是否不饱和
         while(group_R.IsAllNotFull)
@@ -197,17 +305,49 @@ public class MGameClientAction:IDisposable
             //获取要加入容器的预设
             Transform tran = spawnPool.Spawn("Mahjong");
             //加入容器 并获取容器为预设分配的位置
-            Vector3 target = group_R.AddItem(tran);
+            Vector3 target = group_R.AddItem(tran,GlobalData.MAHJONG_Width);
             //预设移动到分配位置
             iTween.MoveTo(tran.gameObject, target, .5f);
             //可以降低获取的速度
             //yield return new WaitForSeconds(.01f);
         }
         yield return 0;
+        callback();
+    }
+
+    //转色子
+    public IEnumerator TurnDice(int A_Result,int B_Result,Callback callback = null)
+    {
+        diceA = spawnPool.Spawn("Dice");
+        diceB = spawnPool.Spawn("Dice");
+        diceA.position = viewObj.PathA[0].position;
+        diceB.position = viewObj.PathB[0].position;
+        //旋转 已经有回调了 不再添加回调函数 
+        iTween.MoveTo(diceA.gameObject, diceAHash);
+        iTween.MoveTo(diceB.gameObject, diceBHash);
+
+        float currentTime = Time.time + rollTime;
+        while(currentTime > Time.time)
+        {
+            diceA.rotation = Quaternion.Lerp(diceA.rotation, SetDice(A_Result), .2f);
+            diceB.rotation = Quaternion.Lerp(diceB.rotation, SetDice(B_Result), .2f);
+            yield return 0;
+        }
+        Debug.Log("色子点数为：DiceA: " + A_Result + "    DiceB: " + B_Result);
+    }
+
+    //清除色子
+    public IEnumerator DisplayDice()
+    {
+        if(diceA)
+            spawnPool.Despawn(diceA);
+        if(diceB)
+            spawnPool.Despawn(diceB);
+        yield return 0;
     }
 
     //开始发牌
-    public IEnumerator AddHandCard(UserCard user, MahjongPrefab card)
+    public IEnumerator AddHandCard(UserCard user, MahjongPrefab card,Callback callback = null)
     {
 
         //判断手牌是否已满并且牌库未空
@@ -230,30 +370,33 @@ public class MGameClientAction:IDisposable
             iTween.MoveTo(mahjong.transform.gameObject, target, .3f);
         }else
         Debug.Log("手牌已满");
+        callback();
     }
 
     //发完牌后为玩家显示手牌
-    public IEnumerator DisplayCard(UserCard user)
+    public IEnumerator DisplayCard(UserCard user,Callback callback = null)
     {
         foreach(MahjongPrefab item in user.handCard)
         {
             item.animator.Play(GlobalData.ANIMA_GetCard);
         }
         yield return 0;
+        callback();
     }
 
     //翻开某个玩家的所有手牌
-    public IEnumerator TurnOverCard(UserCard user)
+    public IEnumerator TurnOverCard(UserCard user, Callback callback = null)
     {
         foreach(MahjongPrefab item in user.handCard)
         {
             item.animator.Play(GlobalData.ANIMA_TurnOverCard);
         }
         yield return 0;
+        callback();
     }
 
     //摸牌 user：用户  card：指定要摸的牌
-    public IEnumerator GetCard(UserCard user,MahjongPrefab card)
+    public IEnumerator GetCard(UserCard user,MahjongPrefab card, Callback callback = null)
     {
         if(user.handleCard.IsNotFull && !group_H.IsAllEmpty)
         {
@@ -274,12 +417,14 @@ public class MGameClientAction:IDisposable
             yield return new WaitForSeconds(.1f);
             //移动到分配位置
             iTween.MoveTo(mahjong.transform.gameObject, target, .3f);
+            yield return new WaitForSeconds(.3f);
         }else
         Debug.Log("手中的牌不能超过一个");
+        callback();
     }
 
     //将摸到的牌插入手牌中
-    public IEnumerator InsertToHandCard(UserCard user,int index, MahjongPrefab mahjong)
+    public IEnumerator InsertToHandCard(UserCard user,int index, MahjongPrefab mahjong, Callback callback = null)
     {
         Vector3 target = user.handCard.InsertAt(index, mahjong);
 
@@ -291,10 +436,12 @@ public class MGameClientAction:IDisposable
 
         //开始移动到出牌区域
         iTween.MoveTo(mahjong.transform.gameObject, target, .4f);
+        yield return new WaitForSeconds(.4f);
+        callback();
     }
 
     //添加暗杠
-    public IEnumerator AddAnGang(UserCard user)
+    public IEnumerator AddAnGang(UserCard user,Callback callback = null)
     {
         if(user.anGangPoint.IsNotFull)
         {
@@ -310,7 +457,8 @@ public class MGameClientAction:IDisposable
             //特效end
             //开始移动到暗杠区域
             iTween.MoveTo(tran.gameObject, target, .5f);
-            yield return 0;
+            yield return new WaitForSeconds(.5f);
+            callback();
         } else
         {
             throw new Debuger("<MGameClientAction::AddAnGang>: 暗杠区域已满.");
@@ -318,7 +466,7 @@ public class MGameClientAction:IDisposable
     }
 
     //添加明杠
-    public IEnumerator AddMingGang(UserCard user)
+    public IEnumerator AddMingGang(UserCard user, Callback callback = null)
     {
         if(user.mingGangPoint.IsNotFull)
         {
@@ -334,15 +482,41 @@ public class MGameClientAction:IDisposable
             //特效end
             //开始移动到明杠区域
             iTween.MoveTo(tran.gameObject, target, .5f);
+            yield return new WaitForSeconds(.5f);
+            callback();
         } else
         {
-            Debug.LogWarning("<MGameClientAction::AddAnGang>: 明杠区域已满.");
-            yield return 0;
+            throw new Debuger("<MGameClientAction::AddAnGang>: 明杠区域已满.");
+        }
+    }
+
+    //添加碰
+    public IEnumerator AddPengChi(UserCard user, Callback callback = null)
+    {
+        if(user.mingGangPoint.IsNotFull)
+        {
+            //获取预设
+            Transform tran = spawnPool.Spawn("PengChi");
+            //加入容器并获取分配坐标
+            Vector3 target = user.mingGangPoint.AddItem(tran, GlobalData.PENG_CHI_Width);
+            //只使用本地坐标x轴做动画
+            tran.position = target + tran.right * .5f;
+            //tran.position = target + tran.right * Vector3.Dot(tran.right, (target - Vector3.zero));
+            //此处可播放特效start 
+
+            //特效end
+            //开始移动到明杠区域
+            iTween.MoveTo(tran.gameObject, target, .5f);
+            yield return new WaitForSeconds(.5f);
+            callback();
+        } else
+        {
+            throw new Debuger("<MGameClientAction::AddAnGang>: 明杠区域已满.");
         }
     }
 
     //特殊牌 & 功能牌
-    public IEnumerator AddSpacialCard(UserCard user,MahjongPrefab card)
+    public IEnumerator AddSpacialCard(UserCard user,MahjongPrefab card, Callback callback = null)
     {
         if(user.spacialCard.IsNotFull)
         {
@@ -354,7 +528,8 @@ public class MGameClientAction:IDisposable
             //特效end
             //开始移动到功能牌区域
             iTween.MoveTo(card.transform.gameObject, target, .5f);
-            yield return 0;
+            yield return new WaitForSeconds(.5f);
+            callback();
         } else
         {
             throw new Debuger("<MGameClientAction::AddAnGang>: 功能牌区域已满.");
@@ -362,7 +537,7 @@ public class MGameClientAction:IDisposable
     }
 
     //出牌区域
-    public IEnumerator AddOutCard(UserCard user, MahjongPrefab card)
+    public IEnumerator AddOutCard(UserCard user, MahjongPrefab card, Callback callback = null)
     {
         if(user.outCardPoint.IsNotFull)
         {
@@ -381,8 +556,10 @@ public class MGameClientAction:IDisposable
 
                 //开始移动到出牌区域
                 iTween.MoveTo(card.transform.gameObject, target, .5f);
+                yield return new WaitForSeconds(.5f);
             }
         }
+        callback();
     }
 
     //清理所有容器

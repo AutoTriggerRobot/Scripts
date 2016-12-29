@@ -62,13 +62,13 @@ public class Container:IEnumerable
     }
     */
     //重载运算附  用+表示连接两表  连接成功返回true
-    public static bool operator +(Container Head, Container Tail)
+    public static Container operator +(Container Head, Container Tail)
     {
         if(Head.nextContainer != null || Tail.previousContainer != null)
-            return false;
+            throw new Debuger("Container::+:无法绑定");
         Head.nextContainer = Tail;
         Tail.previousContainer = Head;
-        return true;
+        return Tail;
     }
 
     /// <summary>
@@ -100,7 +100,6 @@ public class Container:IEnumerable
     {
         previousContainer = null;
         nextContainer = null;
-        Reset();
     }
 
     //只读遍历标志
@@ -228,25 +227,6 @@ public class Container:IEnumerable
     /// <returns></returns>
     public Vector3 AddItem(Transform tran,float interest = -1,float exp = -1)
     {
-        if(interest == -1)
-            switch(type)
-            {
-                case ContainerTypes.Group:
-                    interest = GlobalData.MAHJONG_Width;
-                    exp = GlobalData.MAHJONG_Thickness;
-                    break;
-                case ContainerTypes.Nomal:
-                    interest = GlobalData.MAHJONG_Width;
-                    break;
-                case ContainerTypes.OutCard_HorF:
-                    interest = GlobalData.MAHJONG_Width;
-                    exp = GlobalData.MAHJONG_High;
-                    break;
-                case ContainerTypes.OutCard_LorR:
-                    interest = GlobalData.MAHJONG_High;
-                    exp = GlobalData.MAHJONG_Width;
-                    break;
-            }
         return AddMahjong(new MahjongPrefab(tran, interest, exp));
     }
 
@@ -259,9 +239,6 @@ public class Container:IEnumerable
             case ContainerTypes.Group:
                 mahjong.interest = GlobalData.MAHJONG_Width;
                 mahjong.exp = GlobalData.MAHJONG_Thickness;
-                break;
-            case ContainerTypes.Nomal:
-                mahjong.interest = GlobalData.MAHJONG_Width;
                 break;
             case ContainerTypes.OutCard_HorF:
                 mahjong.interest = GlobalData.MAHJONG_Width;
@@ -339,9 +316,6 @@ public class Container:IEnumerable
             case ContainerTypes.Group:
                 mahjong.interest = GlobalData.MAHJONG_Width;
                 mahjong.exp = GlobalData.MAHJONG_Thickness;
-                break;
-            case ContainerTypes.Nomal:
-                mahjong.interest = GlobalData.MAHJONG_Width;
                 break;
             case ContainerTypes.OutCard_HorF:
                 mahjong.interest = GlobalData.MAHJONG_Width;
@@ -498,9 +472,15 @@ public class Container:IEnumerable
     }
 
     //根据Transform获取列表位置index
-    public int FindTransform(Transform tran)
+    public int FindTransform(Transform traget)
     {
-        return childrenList.FindIndex(pre=>pre.transform == tran);
+        return childrenList.FindIndex(pre=>pre.transform == traget);
+    }
+
+    //在容器中移除某个对象
+    public void Remove(Transform traget)
+    {
+        RemoveAt(FindTransform(traget));
     }
 
     //在列表中间移出物体后重新排列 index:从index开始重排

@@ -19,20 +19,11 @@ using PathologicalGames;
 
 public class ContainerTest : MonoBehaviour
 {
-    public SpawnPool spawnPool;
-
-    //只有单个用户可操控的牌
     MGameClientAction mGameClientAction;
 
-    Quaternion qua = Quaternion.Euler(0, 0, 0);
-
-    void Awake ()
+    void Awake()
     {
-        mGameClientAction = new MGameClientAction();
-	}
-    void Start()
-    {
-        spawnPool = PoolManager.Pools["MahjongPool"];
+        mGameClientAction = new MGameClientAction(this);
     }
 
     void OnGUI ()
@@ -42,31 +33,12 @@ public class ContainerTest : MonoBehaviour
         GUILayout.BeginVertical();
         if(GUILayout.Button("发牌顺序:R-F-L-H"))
         {
-            bool b;
-            b = mGameClientAction.group_R + mGameClientAction.group_F;
-            if(b)
-                b = mGameClientAction.group_F + mGameClientAction.group_L;
-            if(b)
-                b = mGameClientAction.group_L + mGameClientAction.group_H;
-            if(b)
-            {
-                Debug.Log("连接成功");
-            } else
-                Debug.Log("连接失败");
+            mGameClientAction.CardDirection(1);
         }
 
         if(GUILayout.Button("发牌顺序:H-R-F-L"))
         {
-            bool b;
-            b = mGameClientAction.group_H + mGameClientAction.group_R;
-            if(b)
-                b = mGameClientAction.group_R + mGameClientAction.group_F;
-            if(b)
-                b = mGameClientAction.group_F + mGameClientAction.group_L;
-            if(b)
-                Debug.Log("连接成功.");
-            else
-                Debug.Log("连接失败");
+            mGameClientAction.CardDirection(0);
         }
 
         if(GUILayout.Button("断开连接"))
@@ -79,16 +51,14 @@ public class ContainerTest : MonoBehaviour
             StartCoroutine(GetTest(CardTest.group));
         }
 
-        if(GUILayout.Button("获取最后一张牌并移除"))
-        {
-            Transform tran = mGameClientAction.group_R.GetCard(0);
-            if(tran != null)
-                spawnPool.Despawn(tran);
-        }
+        if(GUILayout.Button("掷色子"))
+            StartCoroutine(GetTest(CardTest.diceRoll));
+
+        if(GUILayout.Button("移除色子"))
+            StartCoroutine(GetTest(CardTest.displayDice));
 
         if(GUILayout.Button("清空"))
         {
-            spawnPool.DespawnAll();
             mGameClientAction.Reset();
 
         }
@@ -194,6 +164,12 @@ public class ContainerTest : MonoBehaviour
                     index = 2;
                 yield return mGameClientAction.InsertToHandCard(mGameClientAction.hostUser, index, mGameClientAction.hostUser.handleCard.GetMahjongCard());
                 break;
+            case CardTest.diceRoll:
+                yield return mGameClientAction.TurnDice(Random.Range(1, 7), Random.Range(1, 7));
+                break;
+            case CardTest.displayDice:
+                yield return mGameClientAction.DisplayDice();
+                break;
         }
     }
 
@@ -207,5 +183,7 @@ public class ContainerTest : MonoBehaviour
         group,
         getCard,
         insertCard,
+        diceRoll,
+        displayDice,
     }
 }

@@ -18,13 +18,6 @@ using UnityEngine;
 
 public interface IMGameView
 {
-    /*场景*/
-
-    //部署登录界面
-    void OnLoginView();
-    //游戏设置
-    void OptionView();
-    //
     /*动作*/
 
     //游戏开始

@@ -29,6 +29,9 @@ public class MGameClientView
     //左家区域
     public MahjongGrooves Left;
 
+    public Transform[] PathA = new Transform[10];         //色子A运动轨迹
+    public Transform[] PathB = new Transform[10];         //色子B运动轨迹
+
     #region 交互UI
 
     #endregion
@@ -40,6 +43,13 @@ public class MGameClientView
         Front = new MahjongGrooves(MahjongGroup.transform.Find("Front"));
         Right = new MahjongGrooves(MahjongGroup.transform.Find("Right"));
         Left = new MahjongGrooves(MahjongGroup.transform.Find("Left"));
+        
+        for(int i = 0; i < 10; ++i)
+        {
+            PathA[i] = MahjongGroup.transform.Find("PathA").GetChild(i);
+            PathB[i] = MahjongGroup.transform.Find("PathB").GetChild(i);
+        }
+        
     }
 }
 
