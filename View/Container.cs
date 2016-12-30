@@ -4,7 +4,7 @@
 *│                Author:by Locke Xie 2016-12-26  　　　　　　　　  　│
 *└──────────────────────────────────┘
 *
-* 功 能： 可组成链表的麻将牌并可分配麻将位置的功能容器（存储麻将和麻将排所需要的信息）
+* 功 能： 可组成链表的麻将牌并可分配麻将位置的功能容器（存储麻将和麻将排列所需要的信息）
 * 类 名： Capacity.cs
 * 
 * 修改历史：
@@ -17,7 +17,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Container:IEnumerable
+public class Container : IEnumerable
 {
     public Container previousContainer = null;
     public Container nextContainer = null;
@@ -36,31 +36,7 @@ public class Container:IEnumerable
     ContainerTypes type;
     //遍历标志(用于遍历容器的时候做标记)
     bool isChange = false;
-    /*
-    public Container nextContainer
-    {
-        get
-        {
-            return nextContainer;
-        }
-        set
-        {
-            nextContainer = value;
-        }
-    }
 
-    public Container previousContainer
-    {
-        get
-        {
-            return previousContainer;
-        }
-        set
-        {
-            previousContainer = value;
-        }
-    }
-    */
     //重载运算附  用+表示连接两表  连接成功返回true
     public static Container operator +(Container Head, Container Tail)
     {
@@ -346,9 +322,9 @@ public class Container:IEnumerable
             Vector3 pointTemp = childrenList[index].transform.position;
             childrenList.Insert(index, mahjong);
             //重定位列表定位器 指向插入位置的后两个
-            itemnPoint = pointTemp + (direction * mahjong.interest) * transform.right;
             //重排插入处后面的子物体
-            ReSort(type, index+1);
+            ReSort(pointTemp + (direction * mahjong.interest) * transform.right,
+            index +1);
             return pointTemp;
         }
         if(mahjong.transform)
@@ -357,60 +333,87 @@ public class Container:IEnumerable
             throw new Debuger("手中的牌为空.");
     }
 
-    //移除容器中index的物体 操作成功返回false
-    public void RemoveAt(int index)
+    //移除容器中index的物体  isSort:移除后是否自动调用重排序 操作成功返回false
+    public void RemoveAt(int index,bool isSort = true)
     {
         if(childrenList.Count > 0)
         {
             childrenList.RemoveAt(index);
             //如果是普通容器则重排列表
-            if(type != ContainerTypes.Group)
+            if(type != ContainerTypes.Group && isSort)
             {
                 //重排前初始化最后一个子物体位置 之前的位置已经无效了
-                itemnPoint = transform.position;
-                ReSort(type);
+                ReSort(transform.position);
             }
         } else
             throw new Debuger("<Capaity::RemoveItem>: index out of range");
     }
 
     /// <summary>
-    /// 按序列获取物体并返回
+    /// 按序列获取物体并返回 
     /// </summary>
     /// <param name="direction">方向 大于0 从尾部获取   小于等于0 从头部获取</param>
     /// <param name="len">从起始位置算起 第几个</param>
+    /// <param name="isSort">移除后是否自动调用重排序</param>
     /// <returns></returns>
-    public Transform GetCard(int direction = 1, int len = 0)
+    public Transform GetCard(int direction = 1, int len = 0, bool isSort = true)
     {
-        Transform tran = GetMahjongCard(direction, len).transform;
+        Transform tran = GetMahjongCard(direction, len, isSort).transform;
         if(tran)
             return tran;
         return null;
     }
 
     //获取预设 功能同上
-    public MahjongPrefab GetMahjongCard(int direction = 1, int len = 0)
+    public MahjongPrefab GetMahjongCard(int direction = 1, int len = 0, bool isSort = true)
     {
         MahjongPrefab mahjong = new MahjongPrefab();
-        //try
-        //{
+        try
+        {
             if(direction > 0)
             {
-                //如果当前容器不是末端则执行下一个容器
+                //如果当前容器不是末端则执行下一个容器 如果下个容器不是满状态且小于偏移值则无视前面容器并重置偏移值
                 if(nextContainer != null && !nextContainer.IsEmpty)
                 {
-                    return nextContainer.GetMahjongCard(direction, len);
+                    if(nextContainer.Count > len)
+                        return nextContainer.GetMahjongCard(direction, len, isSort);
+                    else
+                        len = 0;
                 }
                 if(!IsEmpty)
                 {
-                    mahjong = childrenList[childrenList.Count - 1 - len];
-                    //childrenList.RemoveAt(childrenList.Count - 1 - len);
-                    RemoveAt(childrenList.Count - 1 - len);
+                    //如果偏移值大于子物体数量则重置偏移并跳转上一个容器
+                    if(childrenList.Count > len)
+                    {
+                        mahjong = childrenList[childrenList.Count - 1 - len];
+                        RemoveAt(childrenList.Count - 1 - len, isSort);
+                        return mahjong;
+                    } 
+                }
+                //如果列表存在子物体且前容器不为空 则继续向前
+                if(previousContainer != null && !IsAllEmpty)
+                {
+                    return previousContainer.GetMahjongCard(direction, len, isSort);
+                }
+
+                //如果只剩下唯一一个容器 则无视偏移值
+                if(!IsEmpty)
+                {
+                    mahjong = childrenList[childrenList.Count - 1];
+                    RemoveAt(childrenList.Count - 1, isSort);
                     return mahjong;
                 }
-                if(previousContainer != null && !previousContainer.IsEmpty)
+                //如果前容器为空 且依旧存在子物体则跳回到链表最尾端
+                else if(!IsAllEmpty)
                 {
-                    return previousContainer.GetMahjongCard(direction, len);
+                    Container temp;
+                    if(nextContainer != null)
+                    {
+                        temp = nextContainer;
+                        while(temp.nextContainer != null)
+                            temp = temp.nextContainer;
+                        return temp.GetMahjongCard(direction, len, isSort);
+                    }
                 }
                 Debug.Log("麻将已经抽完");
                 return mahjong;
@@ -419,56 +422,62 @@ public class Container:IEnumerable
                 //如果当前容器不是头 则执行上一个容器
                 if(previousContainer != null && !previousContainer.IsEmpty)
                 {
-                    return previousContainer.GetMahjongCard(direction, len);
+                    return previousContainer.GetMahjongCard(direction, len,isSort);
                 }
                 if(!IsEmpty)
                 {
                     //从1开始算 默认把零当成1
                     if(len == 0)
                         ++len;
+                    //如果起始长度大于子物体数量则调整偏移量
+                    while(len > childrenList.Count)
+                        len--;
                     //判断是不是最后一个 如果是就返回
                     if(childrenList.Count == 1)
                     {
                         mahjong = childrenList[0];
-                        //childrenList.Clear();
                         Reset();
                         return mahjong;
                     }
-                    //判断最后一个的麻将上面有没麻将 
-                    if(childrenList[0].transform.position.y < childrenList[1].transform.position.y)
+
+                    //判断麻将上面有没麻将  如果有返回上面的麻将
+                    if(childrenList[len - 1].transform.localPosition.x == childrenList[len - 2].transform.localPosition.x && childrenList[len - 1].transform.position.y < childrenList[len - 2].transform.position.y)
                     {
-                        mahjong = childrenList[len];
-                        //childrenList.RemoveAt(len);
-                        RemoveAt(len);
+                        mahjong = childrenList[len - 2];
+                        RemoveAt(len - 2);
                     }
-                    //如果没有且取的是最后一个麻将
-                    else if(len <= 1)
+                    else if(len < childrenList.Count)
                     {
-                        mahjong = childrenList[len - 1];
-                        //childrenList.RemoveAt(len - 1);
-                        RemoveAt(len - 1);
+                        if(childrenList[len - 1].transform.localPosition.x == childrenList[len].transform.localPosition.x && childrenList[len - 1].transform.position.y < childrenList[len].transform.position.y)
+                        {
+                            mahjong = childrenList[len];
+                            RemoveAt(len);
+                        } else
+                        {
+                            mahjong = childrenList[len - 1];
+                            childrenList.RemoveAt(len - 1);
+                        }
                     }
-                    //如果最后一个麻将上面没有麻将 并且不是取最后一个
+                    //如果没有 取该麻将
                     else
                     {
-                        mahjong = childrenList[len];
-                        childrenList.RemoveAt(len);
+                        mahjong = childrenList[len - 1];
+                        childrenList.RemoveAt(len - 1);
                     }
                     return mahjong;
                 }
                 if(nextContainer != null)
                 {
-                    return nextContainer.GetMahjongCard(direction, len);
+                    return nextContainer.GetMahjongCard(direction, len,isSort);
                 }
 
                 Debug.Log("麻将已经抽完");
                 return mahjong;
             }
-        //} catch
-        //{
-        //    Debug.LogWarning("<Capaity::GetCard>: index out of range");
-        //    return mahjong;
-        //}
+        } catch
+        {
+            throw new Debuger("<Capaity::GetCard>: index out of range");
+        }
     }
 
     //根据Transform获取列表位置index
@@ -483,9 +492,13 @@ public class Container:IEnumerable
         RemoveAt(FindTransform(traget));
     }
 
-    //在列表中间移出物体后重新排列 index:从index开始重排
-    void ReSort(ContainerTypes type,int index = -1)
+    //在列表中间移出物体后重新排列  sortPoint:第一个排序元素位置 index:从index开始重排
+    public void ReSort(Vector3 sortPoint = new Vector3(),int index = -1)
     {
+        //如果将参数设置为vector3.zero  则会将容器内子物体全部重新排序
+        if(sortPoint == Vector3.zero)
+            sortPoint = transform.position;
+        itemnPoint = sortPoint;
         if(index < 0)
             index = 0;
         if(type == ContainerTypes.Nomal)
@@ -502,10 +515,10 @@ public class Container:IEnumerable
             {
                 Vector3 target = itemnPoint;
                 iTween.MoveTo(childrenList[i].transform.gameObject, target, .4f);
-                if(i+1 % (int)type == 0)
+                if((i+1) % (int)type == 0)
                 {
                     itemnPoint = this.transform.position;
-                    itemnPoint -= childrenList[i].exp * ((i + 1 )/ (int)type) * transform.forward;
+                    itemnPoint += childrenList[i].exp * ((i + 1 )/ (int)type) * transform.forward;
                 } else
                 {
                     itemnPoint += (direction * childrenList[i].interest) * transform.right;

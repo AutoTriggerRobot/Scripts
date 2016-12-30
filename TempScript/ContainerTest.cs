@@ -19,11 +19,11 @@ using PathologicalGames;
 
 public class ContainerTest : MonoBehaviour
 {
-    MGameClientAction mGameClientAction;
+    MGameClientAction GameAct;
 
     void Awake()
     {
-        mGameClientAction = new MGameClientAction(this);
+        GameAct = new MGameClientAction(this);
     }
 
     void OnGUI ()
@@ -33,17 +33,17 @@ public class ContainerTest : MonoBehaviour
         GUILayout.BeginVertical();
         if(GUILayout.Button("发牌顺序:R-F-L-H"))
         {
-            mGameClientAction.CardDirection(1);
+            GameAct.CardDirection(1);
         }
 
         if(GUILayout.Button("发牌顺序:H-R-F-L"))
         {
-            mGameClientAction.CardDirection(0);
+            GameAct.CardDirection(0);
         }
 
         if(GUILayout.Button("断开连接"))
         {
-            mGameClientAction.BreakAllLink();
+            GameAct.BreakAllLink();
         }
 
         if(GUILayout.Button("洗牌"))
@@ -59,7 +59,7 @@ public class ContainerTest : MonoBehaviour
 
         if(GUILayout.Button("清空"))
         {
-            mGameClientAction.Reset();
+            GameAct.Reset();
 
         }
         GUILayout.EndVertical();
@@ -69,7 +69,11 @@ public class ContainerTest : MonoBehaviour
         GUILayout.BeginVertical();
         if(GUILayout.Button("发牌"))
         {
-            StartCoroutine(GetTest(CardTest.handCard));
+            MahjongPrefab tran = new MahjongPrefab();
+            if(GameAct.hostUser.handCard.IsNotFull)
+                tran = GameAct.group_H.GetMahjongCard(1, 6);
+            if(tran.transform != null)
+                StartCoroutine(GetTest(CardTest.handCard,tran));
         }
 
         if(GUILayout.Button("获取手牌"))
@@ -79,10 +83,12 @@ public class ContainerTest : MonoBehaviour
 
         if(GUILayout.Button("从最后获取手牌"))
         {
-            MahjongPrefab tran = mGameClientAction.group_R.GetMahjongCard(0);
+            MahjongPrefab tran = new MahjongPrefab();
+            if(GameAct.hostUser.handCard.IsNotFull)
+                tran = GameAct.group_H.GetMahjongCard(0,5);
             if(tran.transform != null)
-                //StartCoroutine(GetTest(CardTest.getCard,tran));
-                mGameClientAction.GetCard(mGameClientAction.hostUser, tran);
+                StartCoroutine(GetTest(CardTest.getCard,tran));
+                //mGameClientAction.GetCard(mGameClientAction.hostUser, tran);
         }
 
         if(GUILayout.Button("加入手牌"))
@@ -92,29 +98,79 @@ public class ContainerTest : MonoBehaviour
 
         if(GUILayout.Button("打出第一张牌"))
         {
-            MahjongPrefab tran = mGameClientAction.hostUser.handCard.GetMahjongCard();
+            MahjongPrefab tran = GameAct.hostUser.handCard.GetMahjongCard();
             StartCoroutine(GetTest(CardTest.outCard,tran));
         }
 
         if(GUILayout.Button("打出最后一张牌"))
         {
-            MahjongPrefab tran = mGameClientAction.hostUser.handCard.GetMahjongCard(0);
+            MahjongPrefab tran = GameAct.hostUser.handCard.GetMahjongCard(0);
             StartCoroutine(GetTest(CardTest.outCard, tran));
         }
 
         if(GUILayout.Button("明杠"))
         {
-            StartCoroutine(GetTest(CardTest.mingGang));
+            //左边第3个开始 杠四个
+            MahjongPrefab tran1 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            MahjongPrefab tran4 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            StartCoroutine(GameAct.AddGang(GameAct.hostUser, CardActType.MingGang, tran1, tran2, tran3, tran4,()=>{
+                GameAct.hostUser.handCard.ReSort();
+            }));
         }
 
         if(GUILayout.Button("暗杠"))
         {
-            StartCoroutine(GetTest(CardTest.anGang));
+            //左边第3个开始 杠四个
+            MahjongPrefab tran1 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            MahjongPrefab tran4 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            StartCoroutine(GameAct.AddGang(GameAct.hostUser, CardActType.AnGang, tran1, tran2, tran3, tran4, () => {
+                GameAct.hostUser.handCard.ReSort();
+            }));
+        }
+
+        if(GUILayout.Button("碰"))
+        {
+            //出牌最后一个
+            MahjongPrefab tran1 = GameAct.hostUser.outCardPoint.GetMahjongCard();
+            //左边第2个开始  碰两个
+            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(0, 1, false);
+            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(0, 1, false);
+            StartCoroutine(GameAct.AddPengChi(GameAct.hostUser, CardActType.Peng, tran1, tran2, tran3, () =>
+            {
+                GameAct.hostUser.handCard.ReSort();
+            }));
+        }
+
+        if(GUILayout.Button("吃"))
+        {
+            //出牌最后一个
+            MahjongPrefab tran1 = GameAct.hostUser.outCardPoint.GetMahjongCard();
+            //左边第2个开始  手牌两个
+            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(0, 1, false);
+            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(0, 1, false);
+            StartCoroutine(GameAct.AddPengChi(GameAct.hostUser, CardActType.Chi, tran1, tran2, tran3, () =>
+            {
+                GameAct.hostUser.handCard.ReSort();
+            }));
+        }
+
+        if(GUILayout.Button("重排出牌区域"))
+        {
+            GameAct.hostUser.outCardPoint.ReSort();
+        }
+
+        if(GUILayout.Button("胡"))
+        {
+            StartCoroutine(GameAct.TurnOverCard(GameAct.hostUser));
         }
 
         if(GUILayout.Button("功能牌"))
         {
-            MahjongPrefab tran = mGameClientAction.hostUser.handCard.GetMahjongCard();
+            MahjongPrefab tran = GameAct.hostUser.handCard.GetMahjongCard();
             StartCoroutine(GetTest(CardTest.spacialCard,tran));
         }
 
@@ -128,47 +184,39 @@ public class ContainerTest : MonoBehaviour
     {
         switch(type)
         {
-            case CardTest.anGang:
-                yield return mGameClientAction.AddAnGang(mGameClientAction.hostUser);
-
-                break;
             case CardTest.group:
-                yield return mGameClientAction.AddGroup();
+                yield return GameAct.AddGroup();
 
                 break;
             case CardTest.handCard:
-                yield return mGameClientAction.AddHandCard(mGameClientAction.hostUser,carditem);
-                yield return mGameClientAction.DisplayCard(mGameClientAction.hostUser);
+                yield return GameAct.AddHandCard(GameAct.hostUser,carditem);
+                yield return GameAct.DisplayCard(GameAct.hostUser);
               
                 break;
-            case CardTest.mingGang:
-                yield return mGameClientAction.AddMingGang(mGameClientAction.hostUser);
-
-                break;
             case CardTest.outCard:
-                yield return mGameClientAction.AddOutCard(mGameClientAction.hostUser, carditem);
+                yield return GameAct.AddOutCard(GameAct.hostUser, carditem);
 
                 break;
             case CardTest.spacialCard:
-                yield return mGameClientAction.AddSpacialCard(mGameClientAction.hostUser, carditem);
+                yield return GameAct.AddSpacialCard(GameAct.hostUser, carditem);
 
                 break;
             case CardTest.getCard:
-                yield return mGameClientAction.GetCard(mGameClientAction.hostUser,carditem);
+                yield return GameAct.GetCard(GameAct.hostUser,carditem);
                 break;
             case CardTest.insertCard:
-                int index = mGameClientAction.hostUser.handCard.Count;
+                int index = GameAct.hostUser.handCard.Count;
                 if(index < 3)
                     --index;
                 else
                     index = 2;
-                yield return mGameClientAction.InsertToHandCard(mGameClientAction.hostUser, index, mGameClientAction.hostUser.handleCard.GetMahjongCard());
+                yield return GameAct.InsertToHandCard(GameAct.hostUser, index, GameAct.hostUser.handleCard.GetMahjongCard());
                 break;
             case CardTest.diceRoll:
-                yield return mGameClientAction.TurnDice(Random.Range(1, 7), Random.Range(1, 7));
+                yield return GameAct.TurnDice(Random.Range(1, 7), Random.Range(1, 7));
                 break;
             case CardTest.displayDice:
-                yield return mGameClientAction.DisplayDice();
+                yield return GameAct.DisapperDice();
                 break;
         }
     }
@@ -176,8 +224,6 @@ public class ContainerTest : MonoBehaviour
     enum CardTest
     {
         handCard,
-        mingGang,
-        anGang,
         spacialCard,
         outCard,
         group,

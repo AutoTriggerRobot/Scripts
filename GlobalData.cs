@@ -34,24 +34,27 @@ public static class GlobalData
     //各个组的容量
     public const int HANDLECARD_Count = 1;    //手中的牌
     public const int HANDCARD_Count = 14;     //手牌
-    public const int MING_GANG_Count = 5;     //明杠
+    public const int MING_GANG_Count = 10;     //明杠
     public const int AN_GANG_Count = 5;       //暗杠
-    public const int OUT_CARD_Count = 34;     //出牌记录
+    public const int OUT_CARD_Count = 136;     //出牌记录
     public const int SPACIAL_CARD_Count = 4;  //功能牌
     public const int GROUP_Count = 34;        //牌库
 
     //各个预设占用的宽度
-    public const float MAHJONG_Width = 0.0565f;     //普通表示当个麻将的宽度 
-    public const float MAHJONG_Thickness = 0.0347f; //麻将厚度
-    public const float MAHJONG_High = 0.0757f;      //麻将高度
+    public const float MAHJONG_Width = 0.0565f;           //普通表示当个麻将的宽度 
+    public const float MAHJONG_Thickness = 0.0347f;       //麻将厚度
+    public const float MAHJONG_High = 0.0757f;            //麻将高度
     public const float AN_GANG_Width = .2f;               //暗杠
     public const float MING_GANG_Width = .25f;            //明杠
-    public const float PENG_CHI_Width = .21f;             //碰吃
+    public const float PENG_Width = .21f;                 //碰
+    public const float CHI_Width = .18f;                  //吃
 
-    //麻将动画
-    public static int ANIMA_GetCard = Animator.StringToHash("GetCard");
-    public static int ANIMA_OutCard = Animator.StringToHash("OutCard");
-    public static int ANIMA_TurnOverCard = Animator.StringToHash("TurnOverCard");
-    public static int ANIMA_InsertCard = Animator.StringToHash("InsertCard");
-    public static int ANIMA_CardIdle = Animator.StringToHash("CardIdle");
+    //麻将动画名
+    public static int ANIMA_GetCard = Animator.StringToHash("Base Layer.GetCard");
+    public static int ANIMA_OutCard = Animator.StringToHash("Base Layer.OutCard");
+    public static int ANIMA_TurnOverCard = Animator.StringToHash("Base Layer.TurnOverCard");
+    public static int ANIMA_InsertCard = Animator.StringToHash("Base Layer.InsertCard");
+    public static int ANIMA_CardIdle = Animator.StringToHash("Base Layer.CardIdle");
+    public static int ANIMA_CloseCard = Animator.StringToHash("Base Layer.CloseCard");
+    public static int ANIMA_ChiPengCard = Animator.StringToHash("Base Layer.ChiPengCard");
 }

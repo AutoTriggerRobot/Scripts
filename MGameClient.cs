@@ -22,9 +22,48 @@ public class MGameClient : MonoBehaviour, IMGameView
     MGameClientAction gameAct;
     OptionData.DataBase gameData = new OptionData.DataBase();
 
+    logic currentState;
+    logic nextState;
+
     void Awake()
     {
         gameAct = new MGameClientAction(this);
+    }
+
+    IEnumerator LogiCprocessor()
+    {
+        switch(nextState)
+        {
+            case logic.turn_dice:
+                currentState = nextState;
+                nextState = logic.add_hand_card;
+                //显示色子
+                yield return gameAct.DisplayDice();
+                yield return new WaitForSeconds(1f);
+                //掷色子
+                yield return gameAct.TurnDice(gameData.dice_num[0], gameData.dice_num[1]);
+                StartCoroutine(gameAct.DisapperDice(2f));
+                //进入下一个状态
+                yield return LogiCprocessor();
+                break;
+            case logic.add_hand_card:
+                currentState = nextState;
+                nextState = logic.add_hand_card_end;
+                //确定取牌次序
+                gameAct.CardDirection(gameData.get_card_priority);
+                //开始发牌
+
+                break;
+        }
+        yield return 0;
+    }
+
+    enum logic
+    {
+       add_group,           //洗牌
+       turn_dice,           //掷色子
+       add_hand_card,       //发牌
+       add_hand_card_end,   //发牌结束
     }
 
     #region IMGameView
@@ -34,14 +73,23 @@ public class MGameClient : MonoBehaviour, IMGameView
     //游戏开始
     bool IMGameView.OnSubGameStart()
     {
+        //当前状态
+        currentState = logic.add_group;
+        //下一个状态
+        nextState = logic.turn_dice;
         //重置
         gameAct.Reset();
-        //随便连起链表
+        //随便连起链表便于洗牌
         gameAct.CardDirection(0);
         //洗牌
-        StartCoroutine(gameAct.AddGroup());
+        StartCoroutine(gameAct.AddGroup(() =>
+        {
+            StartCoroutine(LogiCprocessor());
+        }));
+
         return true;
     }
+
     //用户出牌
     bool IMGameView.OnSubOutCard()
     {
