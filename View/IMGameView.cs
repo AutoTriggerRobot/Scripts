@@ -20,12 +20,24 @@ public interface IMGameView
 {
     /*动作*/
 
-    //游戏开始
-    bool OnSubGameStart();
-    //用户出牌
-    bool OnSubOutCard();
-    //发牌消息
-    bool OnSubSendCard();
+    //开始
+    bool OnStart();
+    //时间消息
+    void OnTimer();
+    //出牌操作
+    void OnOutCard();
+    //托管控制
+    int OnTrusteeControl();
+    //第二次摇色子消息
+    void OnSiceTwo();
+    //发牌
+    void OnSendCard();
+    //玩家操作
+    void OnUserAction(int userID,int supID, UserAction action,params int[] arg);
+
+    //玩家准备
+    void OnReady(int userID);
+
     //操作提示
     bool OnSubOperateNotify();
     //操作结果
@@ -36,15 +48,9 @@ public interface IMGameView
     bool OnSubTrustee();
     //用户听牌
     bool OnSubListenCard();
-    //补牌消息
-    bool OnSubReplaceCard();
 
     /*辅助*/
 
-    //播放牌声音
-    void PlayCardSound();
-    //播放动作声音
-    void PlayActionSound();
     //校验出牌
     bool VerdiotOutCard();
     //是否可出
@@ -53,47 +59,20 @@ public interface IMGameView
     void SetHandCardControl();
     //操作提示
     byte GetSelectCardInfo();
-    //卡牌移动
-    bool BeginMoveCard();
-    //停止移动
-    bool StopMoveCard();
-    //出牌移动
-    bool BeginMoveOutCard();
-    //发牌移动
-    bool BeginMoveSendCard();
-    //补张动画
-    bool BeginMoveReplaceCard();
-    //开局发牌动画
-    bool BeginMoveStartCard();
-    //出牌动画完成
-    bool OnMoveOutCardFinish();
-    //发牌动画完成
-    bool OnMoveSendCardFinish();
-    //补花动画完成
-    bool OnMoveReplaceCardFinish();
-    //开局动画完成
-    bool OnMoveStartCardFinish();
+}
 
-    /*其他玩家*/
-
-    //时间消息
-    void OnTimer();
-    //开始消息
-    int OnStart();
-    //出牌操作
-    int OnOutCard();
-    //卡牌动作
-    int OnCardOperate();
-    //托管控制
-    int OnTrusteeControl();
-    //买底操作
-    int OnChip();
-    //第二次摇色子消息
-    int OnSiceTwo();
-    //摇色子结束
-    int OnSiceFinish();
-    //玩家操作
-    int OnUserAction();
-    //动画完成消息
-    int OnMoveCardFinish();
+public enum UserAction
+{
+    PutCard,        //出牌
+    Chi,            //吃      
+    Peng,           //碰
+    JiaGang,        //加杠
+    MingGang,       //明杠
+    AnGang,         //暗杠
+    ChiHu,          //吃胡
+    Hu,             //胡
+    Ting,           //听
+    TingCancel,     //取消听
+    TuoGuang,       //托管
+    AICancel,       //取消托管
 }

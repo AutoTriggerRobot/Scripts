@@ -21,7 +21,7 @@ public class ContainerTest : MonoBehaviour
 {
     MGameClientAction GameAct;
 
-    void Awake()
+    void Start()
     {
         GameAct = new MGameClientAction(this);
     }
@@ -71,7 +71,7 @@ public class ContainerTest : MonoBehaviour
         {
             MahjongPrefab tran = new MahjongPrefab();
             if(GameAct.hostUser.handCard.IsNotFull)
-                tran = GameAct.group_H.GetMahjongCard(1, 6);
+                tran = GameAct.group_H.GetMahjongCard(6);
             if(tran.transform != null)
                 StartCoroutine(GetTest(CardTest.handCard,tran));
         }
@@ -85,7 +85,7 @@ public class ContainerTest : MonoBehaviour
         {
             MahjongPrefab tran = new MahjongPrefab();
             if(GameAct.hostUser.handCard.IsNotFull)
-                tran = GameAct.group_H.GetMahjongCard(0,5);
+                tran = GameAct.group_H.GetMahjongCard(5,0);
             if(tran.transform != null)
                 StartCoroutine(GetTest(CardTest.getCard,tran));
                 //mGameClientAction.GetCard(mGameClientAction.hostUser, tran);
@@ -104,17 +104,17 @@ public class ContainerTest : MonoBehaviour
 
         if(GUILayout.Button("打出最后一张牌"))
         {
-            MahjongPrefab tran = GameAct.hostUser.handCard.GetMahjongCard(0);
+            MahjongPrefab tran = GameAct.hostUser.handCard.GetMahjongCard(0,0);
             StartCoroutine(GetTest(CardTest.outCard, tran));
         }
 
         if(GUILayout.Button("明杠"))
         {
-            //左边第3个开始 杠四个
-            MahjongPrefab tran1 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
-            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
-            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
-            MahjongPrefab tran4 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            //左边第2个开始 杠四个
+            MahjongPrefab tran1 = GameAct.hostUser.handCard.GetMahjongCard(2, 0, false);
+            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(2, 0, false);
+            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(2, 0, false);
+            MahjongPrefab tran4 = GameAct.hostUser.handCard.GetMahjongCard(2, 0, false);
             StartCoroutine(GameAct.AddGang(GameAct.hostUser, CardActType.MingGang, tran1, tran2, tran3, tran4,()=>{
                 GameAct.hostUser.handCard.ReSort();
             }));
@@ -122,11 +122,11 @@ public class ContainerTest : MonoBehaviour
 
         if(GUILayout.Button("暗杠"))
         {
-            //左边第3个开始 杠四个
-            MahjongPrefab tran1 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
-            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
-            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
-            MahjongPrefab tran4 = GameAct.hostUser.handCard.GetMahjongCard(0, 2, false);
+            //左边第2个开始 杠四个
+            MahjongPrefab tran1 = GameAct.hostUser.handCard.GetMahjongCard(2, 0, false);
+            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(2, 0, false);
+            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(2, 0, false);
+            MahjongPrefab tran4 = GameAct.hostUser.handCard.GetMahjongCard(2, 0, false);
             StartCoroutine(GameAct.AddGang(GameAct.hostUser, CardActType.AnGang, tran1, tran2, tran3, tran4, () => {
                 GameAct.hostUser.handCard.ReSort();
             }));
@@ -136,9 +136,9 @@ public class ContainerTest : MonoBehaviour
         {
             //出牌最后一个
             MahjongPrefab tran1 = GameAct.hostUser.outCardPoint.GetMahjongCard();
-            //左边第2个开始  碰两个
-            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(0, 1, false);
-            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(0, 1, false);
+            //左边第1个开始  碰两个
+            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(1, 0, false);
+            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(1, 0, false);
             StartCoroutine(GameAct.AddPengChi(GameAct.hostUser, CardActType.Peng, tran1, tran2, tran3, () =>
             {
                 GameAct.hostUser.handCard.ReSort();
@@ -149,9 +149,9 @@ public class ContainerTest : MonoBehaviour
         {
             //出牌最后一个
             MahjongPrefab tran1 = GameAct.hostUser.outCardPoint.GetMahjongCard();
-            //左边第2个开始  手牌两个
-            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(0, 1, false);
-            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(0, 1, false);
+            //左边第1个开始  手牌两个
+            MahjongPrefab tran2 = GameAct.hostUser.handCard.GetMahjongCard(1, 0, false);
+            MahjongPrefab tran3 = GameAct.hostUser.handCard.GetMahjongCard(1, 0, false);
             StartCoroutine(GameAct.AddPengChi(GameAct.hostUser, CardActType.Chi, tran1, tran2, tran3, () =>
             {
                 GameAct.hostUser.handCard.ReSort();
@@ -202,7 +202,7 @@ public class ContainerTest : MonoBehaviour
 
                 break;
             case CardTest.getCard:
-                yield return GameAct.GetCard(GameAct.hostUser,carditem);
+                yield return GameAct.AddHandleCard(GameAct.hostUser,carditem);
                 break;
             case CardTest.insertCard:
                 int index = GameAct.hostUser.handCard.Count;

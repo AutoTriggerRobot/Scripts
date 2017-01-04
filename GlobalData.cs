@@ -49,6 +49,7 @@ public static class GlobalData
     public const float PENG_Width = .21f;                 //碰
     public const float CHI_Width = .18f;                  //吃
 
+
     //麻将动画名
     public static int ANIMA_GetCard = Animator.StringToHash("Base Layer.GetCard");
     public static int ANIMA_OutCard = Animator.StringToHash("Base Layer.OutCard");
@@ -57,4 +58,6 @@ public static class GlobalData
     public static int ANIMA_CardIdle = Animator.StringToHash("Base Layer.CardIdle");
     public static int ANIMA_CloseCard = Animator.StringToHash("Base Layer.CloseCard");
     public static int ANIMA_ChiPengCard = Animator.StringToHash("Base Layer.ChiPengCard");
+    public static int ANIMA_OnTriggerEnter = Animator.StringToHash("Base Layer.OnTriggerEnter");
+    public static int ANIMA_OnTriggerExit = Animator.StringToHash("Base Layer.OnTriggerExit");
 }
