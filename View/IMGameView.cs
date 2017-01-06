@@ -33,21 +33,21 @@ public interface IMGameView
     //发牌
     void OnSendCard();
     //玩家操作
-    void OnUserAction(int userID,int supID, UserAction action,params int[] arg);
+    void OnUserAction(int userID,int supID, UserAction action, params int[] arg);
 
     //玩家准备
     void OnReady(int userID);
 
     //操作提示
-    bool OnSubOperateNotify();
+    bool OnOperateNotify();
     //操作结果
-    bool OnSubOperateResult();
+    bool OnOperateResult();
     //游戏结束
-    bool OnSubGameEnd();
+    bool OnGameEnd();
     //用户托管
-    bool OnSubTrustee();
+    bool OnTrustee();
     //用户听牌
-    bool OnSubListenCard();
+    bool OnListenCard();
 
     /*辅助*/
 
@@ -61,18 +61,36 @@ public interface IMGameView
     byte GetSelectCardInfo();
 }
 
+//游戏状态
+public enum Logic
+{
+    empty,               //空
+    add_group,           //洗牌
+    turn_dice,           //掷色子
+    add_hand_card,       //发牌
+    add_hand_card_end,   //发牌结束
+    game_start,          //游戏开始
+    get_handlecard,      //摸牌
+    out_card,            //出牌
+    hu,                  //胡
+}
+
+//用户状态
 public enum UserAction
 {
-    PutCard,        //出牌
-    Chi,            //吃      
-    Peng,           //碰
-    JiaGang,        //加杠
-    MingGang,       //明杠
-    AnGang,         //暗杠
-    ChiHu,          //吃胡
-    Hu,             //胡
-    Ting,           //听
-    TingCancel,     //取消听
-    TuoGuang,       //托管
-    AICancel,       //取消托管
+    empty,          //空
+    ready,          //准备
+    put_card,       //出牌
+    insert_card,    //摸的牌插入手牌
+    chi,            //吃      
+    peng,           //碰
+    jia_gang,       //加杠
+    ming_gang,      //明杠
+    an_gang,        //暗杠
+    chi_hu,         //吃胡
+    hu,             //胡
+    ting,           //听
+    ting_cancel,    //取消听
+    trustee,        //托管
+    AI_cancel,      //取消托管
 }

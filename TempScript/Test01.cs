@@ -12,87 +12,98 @@
 * 
 */
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using UnityEngine;
+using UnityEngine.UI;
 
-// 一个为摇色子服务的脚本
-// 色子朝上的面默认为世界空间的正方向，只用1，2，3来定义世界空间
-// 的向量，比如1代表世界的上，2代表右，3代表前
-public delegate void RollCompleteEvent(object sender, int faceUp);
-// 这个类代表一个六面色子的行为. 当这个类加载的时候，色子会以机
-//作加载在空中。
-// 当色子停下后 event RollComplete 会被激活
+public class Test01: MonoBehaviour
+{
+    public InputField input;
+    public Text read;
 
-public class Test01 : MonoBehaviour {
+    public List<Student> studens = new List<Student>();
+    public Dictionary<string,Student> studenlib = new Dictionary<string, Student>();
+    public Student stud1;
+    public Student stud2;
+    public List<Student> jsonTo;
+    public Dictionary<string,Student> jsonTolib;
+    string json;
+    string jsonlib;
 
-    #region "Events"
-    public event RollCompleteEvent RollComplete;
-    #endregion
-    #region "Private Members"
-    //色子可能的朝向
-    //Vector3.up           1(+) or 6(-) 
-    //Vector3.right,       2(+) or 5(-) 
-    //Vector3.forward];    3(+) or 4(-) 
-    Vector3[] _sides = {Vector3.up, Vector3.right, -Vector3.forward };
-    //声明isSleeping变量为否，即开始加载rigidbody给色子
-    private bool _isSleeping = false;
-    #endregion
-    #region "Private Methods"
-    //寻找色子哪个面朝上，将结果返回 
-    private int WhichIsUp()
+    void Start()
     {
-        //定义maxY为负无穷
-        float maxY = float.NegativeInfinity;
-        int result = -1;
-        for(int i = 0; i < 3; i++)
-        {
+        stud1 = new Student(2, "haha", 22, "boy");
+        stud2 = new Student(5, "BiuBiuBiu", 55, "girl");
+        studens.Add(stud1);
+        studens.Add(stud2);
+        studenlib.Add(stud1.Name, stud1);
+        studenlib.Add(stud2.Name, stud2);
+        Debug.Log(JsonUtility.ToJson(stud1));
+        Debug.Log(JsonUtility.ToJson(studens));
+        Debug.Log(JsonUtility.ToJson(studenlib));
+    }
 
-            //转换物体朝向到世界空间
-            Vector3 worldSpace = transform.TransformDirection(_sides[i]);
-            // 测试哪面的y值更高 测正方向的面 1(+) 2(+) 3(+) 
-            if(worldSpace.y > maxY)
-            {
-                result = i + 1;
-                maxY = worldSpace.y;
-            }
-            // 测试反方向的面 6(-) 5(-) 4(-)
-            if(-worldSpace.y > maxY)
-            {
-                result = 6 - i;
-                maxY = -worldSpace.y;
-            }
+    void OnGUI()
+    {
+        if(GUILayout.Button("json->list<t>"))
+        {
+            
         }
-        return result;
-    }
-    // 查看色子是否停止滚动，使rigidbody睡眠，即暂停
-    private bool IsAtRest()
-    {
-        _isSleeping = GetComponent<Rigidbody>().IsSleeping();
-        return _isSleeping;
-    }
-    #endregion
-    #region "Unity Called Methods/Events"
-    private void Start()
-    {
-        // 以随机的方法投掷色子
-        GetComponent<Rigidbody>().AddRelativeTorque(Vector3.up * ((UnityEngine.Random.value * 20) + 10));
-        GetComponent<Rigidbody>().AddRelativeTorque(Vector3.forward * ((UnityEngine.Random.value * 20) + 10));
-        GetComponent<Rigidbody>().AddRelativeTorque(Vector3.right * ((UnityEngine.Random.value * 20) + 10));
-        GetComponent<Rigidbody>().AddRelativeForce(Vector3.up * ((UnityEngine.Random.value * 120) + 30));
-        GetComponent<Rigidbody>().AddRelativeForce(Vector3.left * ((UnityEngine.Random.value * 170) + 30));
-    }
-    private void Update()
-    {
-        // 仅仅投掷得到结果1次
-        if(!_isSleeping)
+
+        if(GUILayout.Button("序列化1"))
         {
-            if(IsAtRest())
-            {
-                if(RollComplete != null)
-                    RollComplete(this, WhichIsUp());
-            }
+            json = JsonUtility.ToJson(new Serialization<Student>(studens));
+            Debug.Log(json);
+        }
+
+        if(GUILayout.Button("序列化2"))
+        {
+            jsonlib = JsonUtility.ToJson(new Serialization<string, Student>(studenlib));
+            Debug.Log(jsonlib);
+        }
+
+        if(GUILayout.Button("反序列化1"))
+        {
+            jsonTo = JsonUtility.FromJson<Serialization<Student>>(json).ToList();
+            if(jsonTo != null)
+                foreach(Student student in jsonTo)
+                    Debug.Log(student.ToString());
+        }
+
+        if(GUILayout.Button("反序列化2"))
+        {
+            jsonTolib = JsonUtility.FromJson<Serialization<string, Student>>(jsonlib).ToDictionary();
+            if(jsonTolib != null)
+                Debug.Log(jsonTolib.Count);
         }
     }
-    #endregion
+
+}
+
+[Serializable]
+public struct Student
+{
+    public int ID;
+
+    public string Name;
+
+    public int Age;
+
+    public string Sex;
+
+    public Student(int id,string name,int age,string sex)
+    {
+        this.ID = id;
+        this.Name = name;
+        this.Age = age;
+        this.Sex = sex;
+    }
+
+    public override string ToString()
+    {
+        return "ID:"+ID+": Name:" + Name+": Age:"+ Age + ": Sex:" + Sex;
+    }
 }

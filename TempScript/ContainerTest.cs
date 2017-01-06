@@ -20,10 +20,14 @@ using PathologicalGames;
 public class ContainerTest : MonoBehaviour
 {
     MGameClientAction GameAct;
+    ProcessorModel processorModel;
+    List<byte> test;
+
 
     void Start()
     {
         GameAct = new MGameClientAction(this);
+        processorModel = new ProcessorModel();
     }
 
     void OnGUI ()
@@ -175,7 +179,44 @@ public class ContainerTest : MonoBehaviour
         }
 
         GUILayout.EndVertical();
-
+        GUILayout.BeginVertical();
+        if(GUILayout.Button("洗牌"))
+        {
+            test = processorModel.RandCardData();
+            string s = "[ ";
+            foreach(byte item in test)
+            {
+                s += item + " : ";
+            }
+            s += " ]";
+            Debug.Log(s);
+        }
+        if(GUILayout.Button("排序"))
+        {
+            processorModel.SelectSort(ref test);
+            string s = "[ ";
+            foreach(byte item in test)
+            {
+                s += item + " : ";
+            }
+            s += " ]";
+            Debug.Log(s);
+        }
+        if(GUILayout.Button("插入"))
+        {
+            byte item = 10;
+            Debug.Log(item);
+            int index = processorModel.GetInsert(ref test, item);
+            Debug.Log(index);
+            string s = "[ ";
+            foreach(byte it in test)
+            {
+                s += it + " : ";
+            }
+            s += " ]";
+            Debug.Log(s);
+        }
+        GUILayout.EndVertical();
         #endregion
         GUILayout.EndHorizontal();
 	}

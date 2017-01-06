@@ -346,15 +346,14 @@ public class MGameClientAction:IDisposable
         iTween.MoveTo(diceB.gameObject, diceBHash);
 
         float currentTime = Time.time + rollTime * .8f;
-        //随便绕个斜角旋转
-        Vector3 axis = new Vector3(UnityEngine.Random.Range(-45,45),UnityEngine.Random.Range(-45, 45), UnityEngine.Random.Range(-45, 45));
+        //随便旋转 4/5个旋转时间
         while(currentTime > Time.time)
         {
-            diceA.Rotate(axis,30);
-            diceB.Rotate(axis, 30);
+            diceA.rotation = UnityEngine.Random.rotation;
+            diceB.rotation = UnityEngine.Random.rotation;
             yield return 0;
         }
-        //旋转至指定角度
+        //最后 1/5旋转时间 旋转至指定角度
         currentTime = Time.time + rollTime * .2f;
         while(currentTime > Time.time)
         {
