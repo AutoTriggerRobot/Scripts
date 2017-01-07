@@ -18,7 +18,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using PathologicalGames;
 
-public class MGameClientAction:IDisposable
+public class MGameClientAction
 {
     //主角
     public UserCard hostUser;
@@ -299,7 +299,8 @@ public class MGameClientAction:IDisposable
                 temp = group_H + group_R + group_F + group_L;
                 break;
             default:
-                throw new Debuger("MGameClientAction::CardDirection: 发牌顺序超出范围.");
+                Debug.Log("MGameClientAction::CardDirection: 发牌顺序超出范围.");
+                break;
         }
     }
 

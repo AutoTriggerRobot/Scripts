@@ -12,6 +12,7 @@
 * 
 */
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -52,4 +53,43 @@ public class OptionData
     {
 
     }
+}
+
+[Serializable]
+public struct MahjongMessage
+{
+    public int status;
+    public Data data;
+    public List<ServerException> message;
+    public Extra extra;
+
+    public override string ToString()
+    {
+        return JsonUtility.ToJson(this);
+    }
+}
+
+[Serializable]
+public class Data
+{
+    public string passport = "admin";
+    public string passwd =  "1234";
+}
+
+[Serializable]
+public struct ServerException
+{
+    public string code;
+    public string msg;
+    public ServerException(string code, string msg)
+    {
+        this.code = code;
+        this.msg = msg;
+    }
+}
+
+[Serializable]
+public struct Extra
+{
+
 }

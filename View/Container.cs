@@ -41,7 +41,10 @@ public class Container: IEnumerable
     public static Container operator +(Container Head, Container Tail)
     {
         if(Head.nextContainer != null || Tail.previousContainer != null)
-            throw new Debuger("Container::+:无法绑定");
+        {
+            Debug.Log("<Container::+>:无法绑定容器");
+            return Tail;
+        }
         Head.nextContainer = Tail;
         Tail.previousContainer = Head;
         return Tail;
@@ -293,7 +296,8 @@ public class Container: IEnumerable
             {
                 return nextContainer.AddMahjong(mahjong);
             }
-            throw new Debuger("麻将数量已达到上限");
+            Debug.Log("麻将数量已达到上限");
+            return Vector3.zero;
         }
     }
 
@@ -304,12 +308,14 @@ public class Container: IEnumerable
         {
             if(type != ContainerTypes.Nomal)
             {
-                throw new Debuger("容器类型：(" + type.ToString() + ") 不支持插入操作.");
+                Debug.Log("容器类型：(" + type.ToString() + ") 不支持插入操作.");
+                return Vector3.zero;
             }
             if(index > childrenList.Count)
             {
-                throw new Debuger("<Container::InsertAt>: index out of range");
-            }else if(index == childrenList.Count || IsEmpty)
+                Debug.Log("<Container::InsertAt>: index out of range");
+                return Vector3.zero;
+            } else if(index == childrenList.Count || IsEmpty)
             {
                 return AddMahjong(mahjong);
             }
@@ -325,9 +331,14 @@ public class Container: IEnumerable
             return pointTemp;
         }
         if(mahjong.transform)
-            throw new Debuger("容器类型：(" + type.ToString() + ") 已达到容量上限.");
-        else
-            throw new Debuger("手中的牌为空.");
+        {
+            Debug.Log("容器类型：(" + type.ToString() + ") 已达到容量上限.");
+            return Vector3.zero;
+        } else
+        {
+            Debug.Log("手中的牌为空.");
+            return Vector3.zero;
+        }
     }
 
     //移除容器中index的物体  isSort:移除后是否自动调用重排序 操作成功返回false
@@ -343,7 +354,7 @@ public class Container: IEnumerable
                 ReSort(transform.position);
             }
         } else
-            throw new Debuger("<Capaity::RemoveItem>: index out of range");
+            Debug.Log("<Capaity::RemoveItem>: index out of range");
     }
 
     /// <summary>
@@ -478,7 +489,8 @@ public class Container: IEnumerable
             }
         } catch
         {
-            throw new Debuger("<Capaity::GetCard>: index out of range");
+            Debug.Log("<Capaity::GetCard>: index out of range");
+            return mahjong;
         }
     }
 

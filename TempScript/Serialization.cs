@@ -4,7 +4,7 @@
 *│                Author:by Locke Xie 2017-01-06  　　　　　　　　  　│
 *└──────────────────────────────────┘
 *
-* 功 能： 
+* 功 能： Json系列化格式转换
 * 类 名： Serialization.cs
 * 
 * 修改历史：
@@ -13,7 +13,6 @@
 */
 
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using System;
 

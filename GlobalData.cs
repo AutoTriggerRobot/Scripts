@@ -18,6 +18,11 @@ using UnityEngine;
 
 public static class GlobalData
 {
+    //服务器连接提示
+    public const string NET_MSG_Fail = "服务器连接失败...";
+    public const string NET_MSG_Error = "连接错误.";
+    public const string NET_MSG_Try = "正在尝试重新连接...";
+
 
     //牌桌颜色
     public const int SET_MAHJONG_0 = 0;

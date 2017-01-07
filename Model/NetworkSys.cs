@@ -16,23 +16,17 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
-using System.Linq;
 using System.Text;
 using UnityEngine;
-using System.Runtime.Serialization;
 using System.Threading;
 
 public class NetworkSys : IDisposable
 {
-    //是否收到服务器消息
-    public bool isServer = false;
+    //服务端是否是Java
+    public bool isServerJava = true;
     //释放标志
     public volatile bool isDispose;
-    //id
-    public string ID = string.Empty;
 
     Socket socket;
     //回调
@@ -58,22 +52,14 @@ public class NetworkSys : IDisposable
     List<byte> L_Buff = new List<byte>();
 
     //客户端
-    Test client;
+    INetworkCop client;
 
     //创建
-    public NetworkSys(Test client,string ip = "127.0.0.1",int port = 9527)
+    public NetworkSys(INetworkCop client,string ip = "127.0.0.1",int port = 9527)
     {
         this.client = client;
         this.IP = ip;
         this.Port = port;
-    }
-    
-    //测试服务器
-    public NetworkSys(Socket socket)
-    {
-        isServer = true;
-        this.socket = socket;
-        SetSocket();
     }
 
     //连接
@@ -86,9 +72,11 @@ public class NetworkSys : IDisposable
             this.socket.Connect(IP, Port);
             Debug.Log("远程EndPoint：" + socket.RemoteEndPoint.ToString() + " 本地EndPoint：" + socket.LocalEndPoint.ToString());
             SetSocket();
+            client.SuccessInfo();
             Debug.Log("连接成功...");
         }catch(SocketException e)
         {
+            client.ErrorInfo(GlobalData.NET_MSG_Try);
             Debug.Log("连接中断,2秒后重连..." + e);
             //重连
             Thread.Sleep(2000);
@@ -105,6 +93,7 @@ public class NetworkSys : IDisposable
         this.Connect();
     }
 
+    //初始化
     void SetSocket()
     {
         aCallback = new AsyncCallback(ReceiveCallback);
@@ -127,6 +116,7 @@ public class NetworkSys : IDisposable
             }
         } catch
         {
+            client.ErrorInfo(GlobalData.NET_MSG_Fail);
             Close("连接已经被关闭");
         }
     }
@@ -167,51 +157,43 @@ public class NetworkSys : IDisposable
                     {
                         zeroCount++;
                         if(zeroCount == 10)
+                        {
+                            client.ErrorInfo(GlobalData.NET_MSG_Error);
                             this.Close("连接错误");
+                        }
                     }
                 }
-            } catch{ Close("连接已经被关闭"); }
+            } catch{
+                client.ErrorInfo(GlobalData.NET_MSG_Fail);
+                Close("连接已经被关闭"); }
         }
     }
 
     //读取消息
-    public void ReadMsg(MahjongMessage msg)
+    public void ReadMsg(Message msg)
     {
-        using(MemoryStream msReader = new MemoryStream(msg.Msg))
-        {
-            using(BinaryReader srReader = new BinaryReader(msReader, UTF8Encoding.Default))
-            {
-                client.ReadMsg(msg.MsgID, srReader.ReadString());
-            }
-        }
+        client.ReadMsg(msg);
     }
 
     //发送消息
-    public int SendMsg(int i,string msg)
+    public int SendMsg(Message msg)
     {
-        MahjongMessage mms;
-        using(MemoryStream msw = new MemoryStream())
-        {
-            using(BinaryWriter sw = new BinaryWriter(msw, UTF8Encoding.Default))
-            {
-                sw.Write(msg);
-                mms = new MahjongMessage(i, msw.GetBuffer());
-            }
-        }
         int size = 0;
         try
         {
             if(!isDispose)
             {
-                byte[] buff = Encoder(mms);
+                byte[] buff = Encoder(msg);
                 size = socket.Send(buff, 0, buff.Length, SocketFlags.None, out senderError);
                 CheckSocketError(senderError);
             }
         } catch(ObjectDisposedException e)
         {
+            client.ErrorInfo(GlobalData.NET_MSG_Fail);
             Close("连接已被关闭" + e);
         } catch(SocketException e)
         {
+            client.ErrorInfo(GlobalData.NET_MSG_Fail);
             Close("连接已被关闭" + e);
         } catch
         {
@@ -244,6 +226,7 @@ public class NetworkSys : IDisposable
             case SocketError.Shutdown:
             case SocketError.SystemNotReady:
             case SocketError.TooManyOpenSockets:
+                client.ErrorInfo(socketError.ToString());
                 this.Close(socketError.ToString());
                 return true;
         }
@@ -273,6 +256,7 @@ public class NetworkSys : IDisposable
                     buffers = null;
                     if(disposableThis != null)
                         disposableThis.Dispose();
+                    client.Stop();
                 } catch(Exception) { }
             }
         }
@@ -284,6 +268,7 @@ public class NetworkSys : IDisposable
     /// <param name="value"></param>
     public int ReadInt(byte[] intbytes)
     {
+        if(isServerJava)
         Array.Reverse(intbytes);
         return BitConverter.ToInt32(intbytes, 0);
     }
@@ -295,12 +280,13 @@ public class NetworkSys : IDisposable
     public byte[] WriterInt(int value)
     {
         byte[] bs = BitConverter.GetBytes(value);
+        if(isServerJava)
         Array.Reverse(bs);
         return bs;
     }
 
     //消息解码
-    List<MahjongMessage> Decoder(byte[] buff,int len)
+    List<Message> Decoder(byte[] buff,int len)
     {
         byte[] rbuff = new byte[len];
         Array.Copy(buff, 0, rbuff, 0, rbuff.Length);
@@ -312,9 +298,9 @@ public class NetworkSys : IDisposable
             L_Buff.Clear();
             L_Buff = new List<byte>();
         }
-        List<MahjongMessage> msglist = new List<MahjongMessage>();
+        List<Message> msglist = new List<Message>();
         MemoryStream ms = new MemoryStream(buff);
-        BufferReader br = new BufferReader(ms, UTF8Encoding.Default);
+        BinaryReader br = new BinaryReader(ms, UTF8Encoding.Default);
         try
         {
             byte[] _buff;
@@ -331,12 +317,9 @@ public class NetworkSys : IDisposable
                 //消息接收足够
                 if(offset <= (br.BaseStream.Length - br.BaseStream.Position))
                 {
-                    int msgID = 1;
-                    //命令
-                    //msgID = ReadInt(br.ReadBytes(4));
                     //消息
                     _buff = br.ReadBytes((int)(offset));
-                    msglist.Add(new MahjongMessage(msgID, _buff));
+                    msglist.Add(new Message(_buff));
                     goto Tag_back;
                 } else
                 {
@@ -349,8 +332,6 @@ public class NetworkSys : IDisposable
         } catch { } finally
         {
             br.Close();
-            if(br != null)
-                br.Dispose();
             ms.Close();
             if(ms != null)
                 ms.Dispose();
@@ -359,21 +340,19 @@ public class NetworkSys : IDisposable
     }
 
     //消息编码
-    public byte[] Encoder(MahjongMessage msg)
+    public byte[] Encoder(Message msg)
     {
         byte[] bit = null;
         using(MemoryStream ms = new MemoryStream())
         {
             using(BinaryWriter bw = new BinaryWriter(ms, UTF8Encoding.Default))
             {
-                byte[] msgBuff = msg.Msg;
+                byte[] msgBuff = msg.BMsg;
 
                 if(msgBuff != null)
                 {
                     //长度
                     bw.Write(WriterInt(msgBuff.Length));
-                    //命令id
-                    //bw.Write(WriterInt(msg.MsgID));
                     //命令内容
                     bw.Write(msgBuff);
                     bit = ms.ToArray();
@@ -400,20 +379,39 @@ public class NetworkSys : IDisposable
     }
 }
 
-public struct MahjongMessage
+public struct Message
 {
     /// <summary>
-    /// 消息ID
+    /// 消息内容 原始消息
     /// </summary>
-    public int MsgID;
+    public byte[] BMsg;
     /// <summary>
-    /// 消息内容
+    /// 消息内容 文本
     /// </summary>
-    public byte[] Msg;
+    public string SMsg;
 
-    public MahjongMessage(int msgID,byte[] msg)
+    public Message(byte[] msg)
     {
-        MsgID = msgID;
-        Msg = msg;
+        BMsg = msg;
+        using(MemoryStream ms = new MemoryStream(msg))
+        {
+            using(BinaryReader br = new BinaryReader(ms, UTF8Encoding.Default))
+            {
+                SMsg = br.ReadString();
+            }
+        }
+    }
+
+    public Message(string msg)
+    {
+        SMsg = msg;
+        using(MemoryStream ms = new MemoryStream())
+        {
+            using(BinaryWriter bw = new BinaryWriter(ms, UTF8Encoding.Default))
+            {
+                bw.Write(msg);
+                BMsg = ms.ToArray();
+            }
+        }
     }
 }

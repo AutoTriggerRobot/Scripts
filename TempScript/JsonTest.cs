@@ -5,7 +5,7 @@
 *└──────────────────────────────────┘
 *
 * 功 能： 
-* 类 名： Test01.cs
+* 类 名： JsonTest.cs
 * 
 * 修改历史：
 * 
@@ -19,11 +19,8 @@ using System.Runtime.Serialization;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Test01: MonoBehaviour
+public class JsonTest: MonoBehaviour
 {
-    public InputField input;
-    public Text read;
-
     public List<Student> studens = new List<Student>();
     public Dictionary<string,Student> studenlib = new Dictionary<string, Student>();
     public Student stud1;
@@ -32,6 +29,9 @@ public class Test01: MonoBehaviour
     public Dictionary<string,Student> jsonTolib;
     string json;
     string jsonlib;
+    string jsonMsg;
+    public MahjongMessage mahjongMsg = new MahjongMessage();
+    public MahjongMessage mahjongMessage;
 
     void Start()
     {
@@ -41,31 +41,41 @@ public class Test01: MonoBehaviour
         studens.Add(stud2);
         studenlib.Add(stud1.Name, stud1);
         studenlib.Add(stud2.Name, stud2);
-        Debug.Log(JsonUtility.ToJson(stud1));
-        Debug.Log(JsonUtility.ToJson(studens));
-        Debug.Log(JsonUtility.ToJson(studenlib));
+        mahjongMsg.data = new Data();
+        mahjongMsg.extra = new Extra();
+        mahjongMsg.message = new List<ServerException>();
+        mahjongMsg.status = 1;
+        mahjongMsg.message.Add(new ServerException("1001", "失败"));
+        mahjongMsg.message.Add(new ServerException("1002", "失败"));
     }
 
     void OnGUI()
     {
-        if(GUILayout.Button("json->list<t>"))
+        if(GUILayout.Button("msgTojson"))
         {
-            
+            jsonMsg = JsonUtility.ToJson(mahjongMsg);
+            Debug.Log(jsonMsg);
         }
 
-        if(GUILayout.Button("序列化1"))
+        if(GUILayout.Button("jsonTomsg"))
+        {
+            mahjongMessage = JsonUtility.FromJson<MahjongMessage>(jsonMsg);
+            Debug.Log(mahjongMessage.ToString());
+        }
+
+        if(GUILayout.Button("list<t>->json"))
         {
             json = JsonUtility.ToJson(new Serialization<Student>(studens));
             Debug.Log(json);
         }
 
-        if(GUILayout.Button("序列化2"))
+        if(GUILayout.Button("Dictionary<k,v>->json"))
         {
             jsonlib = JsonUtility.ToJson(new Serialization<string, Student>(studenlib));
             Debug.Log(jsonlib);
         }
 
-        if(GUILayout.Button("反序列化1"))
+        if(GUILayout.Button("json->list<t>"))
         {
             jsonTo = JsonUtility.FromJson<Serialization<Student>>(json).ToList();
             if(jsonTo != null)
@@ -73,7 +83,7 @@ public class Test01: MonoBehaviour
                     Debug.Log(student.ToString());
         }
 
-        if(GUILayout.Button("反序列化2"))
+        if(GUILayout.Button("json->Dictionary<k,v>"))
         {
             jsonTolib = JsonUtility.FromJson<Serialization<string, Student>>(jsonlib).ToDictionary();
             if(jsonTolib != null)
@@ -100,6 +110,7 @@ public struct Student
         this.Name = name;
         this.Age = age;
         this.Sex = sex;
+
     }
 
     public override string ToString()
