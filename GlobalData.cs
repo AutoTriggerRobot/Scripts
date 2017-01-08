@@ -98,4 +98,28 @@ public static class GlobalData
         0x35,0x36,0x37,
         0x35,0x36,0x37,
     };
+
+}
+
+//  麻将动作类型
+public enum MahjongAct
+{
+    Null,
+    Hu,
+    ChiHu,
+    MingGang,
+    AnGang,
+    JiaGang,
+    Peng,
+    Chi,
+    Ting,
+
+    //胡牌类型
+    PingHu,
+    PengPengHu,
+    QiDui,
+    QingYiSe,
+    LangHu,
+    QiXingLangHu,
+    ZiYiSe,
 }
