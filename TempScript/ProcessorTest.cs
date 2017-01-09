@@ -36,12 +36,26 @@ public class ProcessorTest : MonoBehaviour
 
         if(GUILayout.Button("GetResult"))
         {
+<<<<<<< HEAD
             result = pro.AnalyseCard(card, HandleCard);
         }
 
         if(GUILayout.Button("result"))
         {
             Debug.Log(pro.HuPaiAnalyse(card));
+=======
+            result = pro.HuPaiAnalyse(card, HandleCard);
+        }
+
+        if(GUILayout.Button("123>111"))
+        {
+            Debug.Log(pro.HuPaiAnalyseSup01(card));
+        }
+
+        if(GUILayout.Button("111>123"))
+        {
+            Debug.Log(pro.HuPaiAnalyseSup02(card));
+>>>>>>> origin/master
         }
     }
 }
