@@ -130,7 +130,7 @@ public class NetworkSys : IDisposable
             {
                 //接收消息
                 receiveSize = socket.EndReceive(iar, out receiveError);
-                if(!CheckSocketError(receiveError)&& receiveError == SocketError.Success)
+                if(!CheckSocketError(receiveError) && receiveError == SocketError.Success)
                 {
                     if(receiveSize > 0)
                     {
@@ -244,7 +244,7 @@ public class NetworkSys : IDisposable
                 try
                 {
                     Debug.Log("关闭连接远程EndPoint：" + socket.RemoteEndPoint.ToString() + " 本地EndPoint：" + socket.LocalEndPoint.ToString());
-                    Debug.Log("关闭Tcp Socket" + msg);
+                    Debug.Log("关闭Tcp Socket:" + msg);
                     try
                     {
                         socket.Close();

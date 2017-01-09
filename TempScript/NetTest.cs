@@ -17,20 +17,26 @@ using UnityEngine.UI;
 using System.Threading;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 public class NetTest: MonoBehaviour,INetworkCop
 {
+    public string IP = "127.0.0.1";
+    public int Prot = 6650;
     public bool isJava;
     public InputField input;
     public InputField read;
     public Thread thread;
     NetworkSys network;
     int status;
-    public string msg;
-    string msgbuff;
+    public string msg = "";
+    public byte[] msgB;
+    string msgbuff = "";
+    bool isReceive = false;
+
     void Awake()
     {
-        network = new NetworkSys(this,"127.0.0.1",6650);
+        network = new NetworkSys(this, IP, Prot);
         network.isServerJava = isJava;
         thread = new Thread(new ThreadStart(network.Connect));
     }
@@ -46,11 +52,12 @@ public class NetTest: MonoBehaviour,INetworkCop
             Stop();
         }
 
-        if(msgbuff != msg)
+        if(isReceive)
         {
+            isReceive = false;
             msgbuff = msg;
-            read.text += msg + "\n";
-            Debug.Log("已收到服务器消息：" + msg);
+            read.text +="Server: "+ msg + "\n";
+            Debug.Log("已收到服务器消息：" + "<color=green>" + msg + "</color>");
         }
     }
 
@@ -100,7 +107,9 @@ public class NetTest: MonoBehaviour,INetworkCop
 
     public void ReadMsg(Message msg)
     {
+        isReceive = true;
         this.msg = msg.SMsg;
+        this.msgB = msg.BMsg;
     }
 
     public int SendMsg(string msg)
@@ -110,8 +119,8 @@ public class NetTest: MonoBehaviour,INetworkCop
 
     public void ErrorInfo(string msg)
     {
-        this.msg = msg;
-        StartCoroutine(WaitReConnect());
+        Debug.Log("Error：" + "<color=red>" + msg + "</color>");
+        //StartCoroutine(WaitReConnect());
     }
 
     IEnumerator WaitReConnect()

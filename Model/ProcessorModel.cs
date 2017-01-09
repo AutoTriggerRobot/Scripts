@@ -26,12 +26,13 @@ public class ProcessorModel: IMGameModel
     //	0x31,0x32,0x33,0x34,					            				//风牌 东 南 西 北
     //	0x35,0x36,0x37,                         							//箭牌 中 发 白
 
-    List<byte> cardWare;                                                    //桌面还剩麻将
+    List<byte> cardWare;                                                    //等待抽取的麻将
+    Dictionary<byte,int> cardDic;                                           //可能还剩下的未出过的牌 byte牌型 int数量
 
     List<byte>[] HandCard = new List<byte>[4];                              //手牌  0庄 1右 2对 3左
     List<byte[]>[] PengCard = new List<byte[]>[4];                          //碰牌 吃牌 明杠等 （下面的类似
-    Queue<byte>[] AnGang = new Queue<byte>[4];                              //庄家暗杠 （下面的类似
-    Queue<byte>[] OutCard = new Queue<byte>[4];                             //庄家出牌区域  (下面类似
+    Stack<byte>[] AnGang = new Stack<byte>[4];                              //庄家暗杠 （下面的类似
+    Stack<byte>[] OutCard = new Stack<byte>[4];                             //庄家出牌区域  (下面类似
 
     byte handleCard;                                                        //摸起来的牌
     byte outCard;                                                           //刚出的牌
@@ -57,8 +58,12 @@ public class ProcessorModel: IMGameModel
         {
             HandCard[i] = new List<byte>();
             PengCard[i] = new List<byte[]>();
-            AnGang[i] = new Queue<byte>();
-            OutCard[i] = new Queue<byte>();
+            AnGang[i] = new Stack<byte>();
+            OutCard[i] = new Stack<byte>();
+        }
+        for(int i= 0; i < GlobalData.CardType.Length; ++i)
+        {
+            cardDic.Add(GlobalData.CardType[i], 4);
         }
         isSorted = false;
         userID = 0;
@@ -142,7 +147,7 @@ public class ProcessorModel: IMGameModel
             {
                 SelectSort(ref HandCard[i]);
                 //排序完后分组
-                GroupAnalyse(i, HandCard[i]);
+                GroupAnalyse(HandCard[i], out nSequence[i], out nPieces[i]);
             }
             isSorted = true;
             return HandCard[userID];
@@ -161,7 +166,7 @@ public class ProcessorModel: IMGameModel
     {
         int index = GetInsert(ref HandCard[userID], handleCard);
         //重新分组
-        GroupAnalyse(userID, HandCard[userID]);
+        GroupAnalyse(HandCard[userID],out nSequence[userID],out nPieces[userID]);
         return index;
     }
 
@@ -191,110 +196,755 @@ public class ProcessorModel: IMGameModel
     public int AnalyseCard(int userID, byte card)
     {
         //杠>碰>吃>胡>没操作   判断顺序  
+        return 0;
     }
 
-    //手牌分组 判断顺序 是否是111 否则是否是11 否则是否是 123  循环判断
-    public void GroupAnalyse(int userID,List<byte> handCard)
+    public byte[] GetGroup(int userID)
     {
-        //保证排数为3n+1张
-        if(handCard.Count%3 == 1)
+        List<byte> result = new List<byte>();
+        foreach(List<Card> list in nSequence[userID])
+            foreach(Card card in list)
+                result.Add(card.card);
+        //foreach(List<Card> list in nPieces[userID])
+        //    foreach(Card card in list)
+        //        result.Add(card.card);
+        return result.ToArray();
+    }
+
+    //手牌分组 判断优先级 是否是111>11>123  循环判断
+    public void GroupAnalyse(List<byte> handCard,out List<List<Card>> nSequence,out List<List<Card>> nPieces)
+    {
+        nSequence = new List<List<Card>>();
+        nPieces = new List<List<Card>>();
+        //临时存放组
+        List<Card> group0 = new List<Card>();
+        List<Card> group1 = new List<Card>();
+        List<Card> group2 = new List<Card>();
+        List<Card> group3 = new List<Card>();
+        //临时存放散牌
+        List<Card> piec = new List<Card>();
+        //索引
+        int index = 0;
+        try
         {
-            nSequence[userID].Clear();
-            nPieces[userID].Clear();
-            //临时存放组
-            List<Card> group = new List<Card>();
-            //临时存放散牌
-            List<Card> piec = new List<Card>();
-            //索引
-            int index = 0;
-            try
+            byte temp = handCard[index]; //取出第一个  分析开始
+            group0.Add(new Card(index, temp));
+            do
             {
-                byte temp = handCard[index]; //取出第一个  分析开始
-                do
+                //判断是否相同  是否连续  否则  按照这个顺序一直判断
+                if(handCard.Count > index + 1 && temp == handCard[index + 1])
                 {
-                    //对比下一个 判断111 否则 11
-                    if(handCard.Count > index + 1 && temp == handCard[index+1])
+                    //存入分组
+                    ++index;
+                    group0.Add(new Card(index, handCard[index]));
+                    temp = handCard[index];
+
+                    //如果已经存满三个 组直接存入分组
+                    if(group0.Count == 3)
                     {
-                        //存入分组
-                        group.Add(new Card(index,temp));
-                        ++index;
-                        group.Add(new Card(index, handCard[index]));
-                        //再判断下一个是 否相等
-                        if(handCard.Count > index + 1 && temp == handCard[index + 1])
+                        nSequence.Add(new List<Card>(group0));
+                        group0.Clear();
+
+                        //判断group1是否有
+                        if(group1.Count > 0)
                         {
-                            //继续存入
-                            ++index;
-                            group.Add(new Card(index, handCard[index]));
-                        }
-                        //将分组存入牌型
-                        nSequence[userID].Add(group);
-                        //清空组
-                        group.Clear();
-                        //如果已经迭代完成则退出循环
-                        if(index + 1 == handCard.Count)
-                            break;
-                        //准备下一次判断
-                        temp = handCard[++index];
-                    } else if(handCard.Count > index + 1 && temp + 1 == handCard[index + 1])
-                    {
-                        //如果两个连续
-                        //暂时存入分组
-                        group.Add(new Card(index, temp));
-                        ++index;
-                        group.Add(new Card(index, handCard[index]));
-                        //再判断下一个 是否是123
-                        if(handCard.Count > index + 1 && temp + 2 == handCard[index + 1])
-                        {
-                            //如果是继续存入
-                            ++index;
-                            group.Add(new Card(index, handCard[index]));
-                            //将分组存入牌型
-                            nSequence[userID].Add(group);
-                            //清空组
-                            group.Clear();
-                            //如果已经迭代完成则退出循环
-                            if(index + 1 == handCard.Count)
-                                break;
-                            //准备下一次判断
-                            temp = handCard[++index];
+                            group0.Add(group1[group1.Count - 1]);
+                            group1.RemoveAt(group1.Count - 1);
+                            temp = group0[0].card;
                         } else
                         {
-                            //如果不能组成顺子 则将第一个加入散牌 从第二个开始迭代新判断
-                            piec.Add(group[0]);
-                            //准备下一次判断
-                            temp = group[1].card;
-                            group.Clear();
+                            //如果已经迭代完成则退出循环
+                            if(index + 1 >= handCard.Count)
+                                break;
+
+                            ++index;
+                            group0.Add(new Card(index, handCard[index]));
+                            temp = handCard[index];
+                        }
+                    }
+                }else if(temp < 0x31 && handCard.Count > index + 1 && temp + 1 == handCard[index + 1])
+                {
+                    //大于1则是对子
+                    if(group0.Count > 1)
+                    {
+                        nSequence.Add(new List<Card>(group0));
+                        group0.Clear();
+
+                        //group2 大于1 是11 
+                        if(group2.Count > 1)
+                        {
+                            //加入组
+                            nSequence.Add(new List<Card>(group2));
+                        } else if(group2.Count == 1)
+                        {
+                            piec.Add(group2[0]);
+                        }
+
+                        //group1 大于1 是11
+                        if(group1.Count > 1)
+                        {
+                            //加入组
+                            nSequence.Add(new List<Card>(group1));
+                        } else if(group1.Count == 1)
+                        {
+                            piec.Add(group1[0]);
+                        }
+                        group2.Clear();
+                        group1.Clear();
+
+                        //如果已经迭代完成则退出循环
+                        if(index + 1 >= handCard.Count)
+                            break;
+
+                        ++index;
+                        group0.Add(new Card(index, handCard[index]));
+                        temp = handCard[index];
+                    } else
+                    {
+                        //如果group1 和 group2 都不为0 则是顺子
+                        if(group1.Count > 0 && group2.Count > 0)
+                        {
+                            group3.Add(group1[0]);
+                            group1.RemoveAt(0);
+                            group3.Add(group2[0]);
+                            group2.RemoveAt(0);
+                            group3.Add(group0[0]);
+                            group0.RemoveAt(0);
+
+                            //将顺子存入 组
+                            nSequence.Add(new List<Card>(group3));
+                            group3.Clear();
+
+                            //处理第一个缓冲列表 如果大于1 则存入组 否则存入撒牌
+                            if(group1.Count > 1)
+                            {
+                                nSequence.Add(new List<Card>(group1));
+                            } else if(group1.Count == 1)
+                            {
+                                piec.Add(group1[0]);
+                            }
+                            group1.Clear();
+
+                            //将后面的缓冲向前移
+                            group1.AddRange(group2);
+                            group2.Clear();
+
+                            //从上一个结果开始从新一轮的判断
+                            if(group0.Count > 0)
+                            {
+                                temp = group0[group0.Count - 1].card;
+                            } else if(group1.Count > 0)
+                            {
+                                group0.Add(group1[group1.Count - 1]);
+                                group1.RemoveAt(group1.Count - 1);
+                                temp = group0[0].card;
+                            } else
+                            {
+                                //如果已经迭代完成则退出循环
+                                if(index + 1 >= handCard.Count)
+                                    break;
+
+                                ++index;
+                                group0.Add(new Card(index, handCard[index]));
+                                temp = handCard[index];
+                            }
+                        } else
+                        {
+
+                            //将结果存入另外一个列表
+                            if(group1.Count == 0)
+                                group1.AddRange(group0);
+                            else
+                                group2.AddRange(group0);
+
+                            group0.Clear();
+
+                            ++index;
+                            group0.Add(new Card(index, handCard[index]));
+                            temp = handCard[index];
+                        }
+                    }
+                } else
+                {
+                    //group2 大于1 是11 
+                    if(group2.Count > 1)
+                    {
+                        //加入组
+                        nSequence.Add(new List<Card>(group2));
+                    } else if(group2.Count == 1)
+                    {
+                        piec.Add(group2[0]);
+                    }
+
+                    //group1 大于1 是11
+                    if(group1.Count > 1)
+                    {
+                        //加入组
+                        nSequence.Add(new List<Card>(group1));
+                    } else if(group1.Count == 1)
+                    {
+                        piec.Add(group1[0]);
+                    }
+
+                    //group0 大于1 是11
+                    if(group0.Count > 1)
+                    {
+                        //加入组
+                        nSequence.Add(new List<Card>(group1));
+                    } else if(group0.Count == 1)
+                    {
+                        piec.Add(group0[0]);
+                    }
+                    group2.Clear();
+                    group1.Clear();
+                    group0.Clear();
+
+                    //如果已经迭代完成则退出循环
+                    if(index + 1 >= handCard.Count)
+                        break;
+
+                    ++index;
+                    group0.Add(new Card(index, handCard[index]));
+                    temp = handCard[index];
+                }
+            } while(true);
+            //散牌分析 相邻的组一组
+            for(int i = 0; i < piec.Count; ++i)
+            {
+                if(piec.Count > i+1 && piec[i] == piec[i + 1])
+                {
+                    //存入散牌并跳过下一个判断
+                    nPieces.Add(new List<Card>() { piec[i], piec[++i] });
+                } else
+                {
+                    //存入散牌
+                    nPieces.Add(new List<Card>() { piec[i] });
+                }
+            }
+        } catch
+        {
+            Debug.LogError("<ProcessorModel::GroupAnalyse>: out of range, index: " + index + ", range:" + HandCard[userID].Count);
+        }
+    }
+
+    //胡牌判断
+    public byte[] HuPaiAnalyse(List<byte> handCard,byte card = 0)
+    {
+        List<byte> result = new List<byte>();
+        byte[] sup = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        //记录上次移除的对子麻将
+        Card cardMem;
+        if(card != 0)
+        {
+            sup = new byte[1] { card };
+        }
+        for(int i = 0; i < sup.Length; ++i)
+        {
+            //排序
+            List<byte> temp = new List<byte>(handCard);
+            GetInsert(ref temp, sup[i]);
+            //获取所有对子
+            List<byte> nPair = GetPair(temp);
+            while(nPair.Count > 0)
+            {
+                //移除
+                cardMem = new Card(temp.FindIndex(cd => cd == nPair[0]), nPair[0]);
+                temp.RemoveRange(cardMem.index,2);
+                nPair.RemoveAt(0);
+                //判断
+                if(HuPaiAnalyseSup01(temp) || HuPaiAnalyseSup02(temp))
+                {
+                    if(result.FindIndex(cd => cd == sup[i]) == -1)
+                    result.Add(sup[i]);
+                }
+                //加回
+                temp.Insert(cardMem.index, cardMem.card);
+                temp.Insert(cardMem.index, cardMem.card);
+            }
+        }
+
+        return result.ToArray();
+    }
+
+    //获取牌中的所有对子
+    public List<byte> GetPair(List<byte> Card)
+    {
+        List<byte> result = new List<byte>();
+        //索引
+        int index = 0;
+        try
+        {
+            byte temp = Card[index]; //取出第一个  分析开始
+            do
+            {
+                //判断是否相同  是否连续  否则  按照这个顺序一直判断
+                if(Card.Count > index + 1 && temp == Card[index + 1])
+                {
+                    if(result.FindIndex(cd=> cd == temp) == -1)
+                    result.Add(temp);
+                    ++index;
+
+                    //如果已经迭代完成则退出循环
+                    if(index + 1 >= Card.Count)
+                        break;
+
+                    ++index;
+                    temp = Card[index];
+                } else
+                {
+                    //如果已经迭代完成则退出循环
+                    if(index + 1 >= Card.Count)
+                        break;
+
+                    ++index;
+                    temp = Card[index];
+                }
+            } while(true);
+        } catch
+        {
+            Debug.LogError("<ProcessorModel::GroupAnalyse02>: out of range, index: " + index + ", range:" + HandCard[userID].Count);
+        }
+
+        return result;
+    }
+
+    //判断优先级 是否是 123>111>11  循环判断 胡牌判断 判断前已经取出一个对子所以对子也算散牌
+    public bool HuPaiAnalyseSup01(List<byte> Card)
+    {
+        List<List<Card>> nSequence = new List<List<Card>>();
+        //临时存放组
+        List<Card> group0 = new List<Card>(); 
+        List<Card> group1 = new List<Card>(); 
+        List<Card> group2 = new List<Card>(); 
+        //临时存放散牌
+        List<Card> piec = new List<Card>();
+        //索引
+        int index = 0;
+        try
+        {
+            byte temp = Card[index]; //取出第一个  分析开始
+            group0.Add(new Card(index, temp));
+            do
+            {
+                //判断是否相同  是否连续  否则  按照这个顺序一直判断
+                if(Card.Count > index + 1 && temp == Card[index + 1])
+                {
+                    //如果此前已经存满三个 组直接存入分组
+                    if(group0.Count == 3)
+                    {
+                        nSequence.Add(new List<Card>(group0));
+                        group0.Clear();
+                    }
+
+                    //存入分组
+                    ++index;
+                    group0.Add(new Card(index, Card[index]));
+                    temp = Card[index];
+                }
+                else if(temp < 0x31 && Card.Count > index + 1 && temp + 1 == Card[index + 1])
+                {
+                    //如果group1不为空则表示可以有顺子
+                    if(group1.Count > 0)
+                    {
+                        //取出group1的一位
+                        group2.Add(group1[0]);
+                        group1.RemoveAt(0);
+                        //取出group0的一位
+                        group2.Add(group0[0]);
+                        group0.RemoveAt(0);
+                        //加上现在判断的一位
+                        ++index;
+                        group2.Add(new Card(index, Card[index]));
+                        //加入分组
+                        nSequence.Add(new List<Card>(group2));
+                        group2.Clear();
+                        //从上一个结果开始从新一轮的判断
+                        if(group0.Count > 0)
+                        {
+                            temp = group0[group0.Count - 1].card;
+                        } else if(group1.Count > 0)
+                        {
+                            group0.Add(group1[group1.Count - 1]);
+                            group1.RemoveAt(group1.Count - 1);
+                            temp = group0[0].card;
+                        } else
+                        {
+                            //如果已经迭代完成则退出循环
+                            if(index + 1 >= Card.Count)
+                                break;
+
+                            ++index;
+                            group0.Add(new Card(index, Card[index]));
+                            temp = Card[index];
                         }
                     } else
                     {
-                        //加入散牌
-                        piec.Add(new Card(index, temp));
-                        //如果已经迭代完成则退出循环
-                        if(index +1 == handCard.Count)
-                            break;
-                        //准备下一次判断
-                        temp = handCard[++index];
+                        //将结果存入另外一个列表
+                        group1.AddRange(group0);
+                        group0.Clear();
+
+                        ++index;
+                        group0.Add(new Card(index, Card[index]));
+                        temp = Card[index];
                     }
-                } while(handCard.Count > index +1);
-                //散牌分析 相邻的组一组
-                for(int i = 0; i < piec.Count; ++i)
+                } else
                 {
-                    if(piec[i] == piec[i + 1])
+                    //group1 大于2 是111
+                    if(group1.Count > 2)
                     {
-                        //存入散牌并跳过下一个判断
-                        nPieces[userID].Add(new List<Card>() { piec[i], piec[++i] });
-                    } else
+                        //加入组
+                        nSequence.Add(new List<Card>(group1));
+                    } else if(group1.Count == 1)
                     {
-                        //存入散牌
-                        nPieces[userID].Add(new List<Card>() { piec[i] });
+                        piec.Add(group1[0]);
+                    } else if(group1.Count == 2)
+                    {
+                        piec.AddRange(group1);
+                    }
+                    //group0 大于2 是111
+                    if(group0.Count > 2)
+                    {
+                        //加入组
+                        nSequence.Add(new List<Card>(group0));
+                    } else if(group0.Count == 1)
+                    {
+                        piec.Add(group0[0]);
+                    } else if(group0.Count == 2)
+                    {
+                        piec.AddRange(group0);
+                    }
+                    group1.Clear();
+                    group0.Clear();
+
+                    //如果已经迭代完成则退出循环
+                    if(index + 1 >= Card.Count)
+                        break;
+
+                    ++index;
+                    group0.Add(new Card(index, Card[index]));
+                    temp = Card[index];
+                }
+            } while(true);
+        } catch
+        {
+            Debug.LogError("<ProcessorModel::GroupAnalyse02>: out of range, index: " + index + ", range:" + HandCard[userID].Count);
+        }
+        //散牌分析 相邻的组一组
+        if(piec.Count > 0)
+            return false;
+        else
+            return true;
+    }
+
+    //判断优先级 是否是 111>123>11  循环判断 胡牌判断 判断前已经取出一个对子所以对子也算散牌
+    public bool HuPaiAnalyseSup02(List<byte> Card)
+    {
+        List<List<Card>> nSequence = new List<List<Card>>();
+        //临时存放组
+        List<Card> group0 = new List<Card>();  
+        List<Card> group1 = new List<Card>();  
+        List<Card> group2 = new List<Card>();
+        List<Card> group3 = new List<Card>();
+        //临时存放散牌
+        List<Card> piec = new List<Card>();
+        //索引
+        int index = 0;
+        try
+        {
+            byte temp = Card[index]; //取出第一个  分析开始
+            group0.Add(new Card(index, temp));
+            do
+            {
+                //判断是否相同  是否连续  否则  按照这个顺序一直判断
+                if(Card.Count > index + 1 && temp == Card[index + 1])
+                {
+                    //存入分组
+                    ++index;
+                    group0.Add(new Card(index, Card[index]));
+                    temp = Card[index];
+
+                    //如果已经存满三个 组直接存入分组
+                    if(group0.Count == 3)
+                    {
+                        nSequence.Add(new List<Card>(group0));
+                        group0.Clear();
+
+                        //判断group1是否有
+                        if(group1.Count > 0)
+                        {
+                            group0.Add(group1[group1.Count - 1]);
+                            group1.RemoveAt(group1.Count - 1);
+                            temp = group0[0].card;
+                        } else
+                        {
+                            //如果已经迭代完成则退出循环
+                            if(index + 1 >= Card.Count)
+                                break;
+
+                            ++index;
+                            group0.Add(new Card(index, Card[index]));
+                            temp = Card[index];
+                        }
                     }
                 }
-            } catch
-            {
-                Debug.LogError("<ProcessorModel::GroupAnalyse>: out of range, index: " + index + ", range:" + HandCard[userID].Count);
-            }
+                else if(temp < 0x31 && Card.Count > index + 1 && temp + 1 == Card[index + 1])
+                {
+
+                    //如果group1 和 group2 都不为0 则是顺子
+                    if(group1.Count > 0 && group2.Count > 0)
+                    {
+                        group3.Add(group1[0]);
+                        group1.RemoveAt(0);
+                        group3.Add(group2[0]);
+                        group2.RemoveAt(0);
+                        group3.Add(group0[0]);
+                        group0.RemoveAt(0);
+
+                        //将顺子存入 组
+                        nSequence.Add(new List<Card>(group3));
+                        group3.Clear();
+
+                        //处理第一个缓冲列表 如果等于1 则存入组 否则存入撒牌
+                        if(group1.Count == 1)
+                        {
+                            piec.Add(group1[0]);
+                        } else
+                        {
+                            piec.AddRange(group1);
+                        }
+                        group1.Clear();
+
+                        //将后面的缓冲向前移
+                        group1.AddRange(group2);
+                        group2.Clear();
+
+                        //从上一个结果开始从新一轮的判断
+                        if(group0.Count > 0)
+                        {
+                            temp = group0[group0.Count - 1].card;
+                        } else if(group1.Count > 0)
+                        {
+                            group0.Add(group1[group1.Count - 1]);
+                            group1.RemoveAt(group1.Count - 1);
+                            temp = group0[0].card;
+                        } else
+                        {
+                            //如果已经迭代完成则退出循环
+                            if(index + 1 >= Card.Count)
+                                break;
+
+                            ++index;
+                            group0.Add(new Card(index, Card[index]));
+                            temp = Card[index];
+                        }
+                    } else
+                    {
+
+                        //将结果存入另外一个列表
+                        if(group1.Count == 0)
+                            group1.AddRange(group0);
+                        else
+                            group2.AddRange(group0);
+
+                        group0.Clear();
+
+                        ++index;
+                        group0.Add(new Card(index, Card[index]));
+                        temp = Card[index];
+                    }
+                } else
+                {
+                    //group2 大于1 是11 
+                    if(group2.Count > 1)
+                    {
+                        //加入散牌
+                        piec.AddRange(group2);
+                    } else if(group2.Count == 1)
+                    {
+                        piec.Add(group2[0]);
+                    }
+
+                    //group1 大于1 是11
+                    if(group1.Count > 1)
+                    {
+                        //加入散牌
+                        piec.AddRange(group1);
+                    } else if(group1.Count == 1)
+                    {
+                        piec.Add(group1[0]);
+                    }
+                  
+                    //group0 大于1 是11
+                    if(group0.Count > 1)
+                    {
+                        //加入散牌
+                        piec.AddRange(group0);
+                    } else if(group0.Count == 1)
+                    {
+                        piec.Add(group0[0]);
+                    }
+                    group2.Clear();
+                    group1.Clear();
+                    group0.Clear();
+
+                    //如果已经迭代完成则退出循环
+                    if(index + 1 >= Card.Count)
+                        break;
+
+                    ++index;
+                    group0.Add(new Card(index, Card[index]));
+                    temp = Card[index];
+                }
+            } while(true);
+        } catch
+        {
+            Debug.LogError("<ProcessorModel::GroupAnalyse03>: out of range, index: " + index + ", range:" + HandCard[userID].Count);
         }
+        //散牌分析 相邻的组一组
+        if(piec.Count > 0)
+            return false;
+        else
+            return true;
     }
+    /*
+    //胡牌分析
+    public bool HuPaiAnalyseSup(List<byte> card)
+    {
+        //临时存放组
+        List<Card> group0 = new List<Card>();
+        List<Card> group1 = new List<Card>();
+        List<Card> group2 = new List<Card>();
+        List<Card> group3 = new List<Card>();
+        //索引
+        int index = 0;
+        byte temp = card[index]; //取出第一个  分析开始
+        group0.Add(new Card(index, temp));
+        do
+        {
+            //判断是否相同  是否连续  否则  按照这个顺序一直判断
+            if(card.Count > index + 1 && temp == card[index + 1])
+            {
+                //存入分组
+                ++index;
+                group0.Add(new Card(index, card[index]));
+                temp = card[index];
+
+                //如果已经存满三个 丢弃
+                if(group0.Count == 3)
+                {
+                    
+                }
+            } else if(temp < 0x31 && card.Count > index + 1 && temp + 1 == card[index + 1])
+            {
+
+                //如果group1 和 group2 都不为0 则是顺子
+                if(group1.Count > 0 && group2.Count > 0)
+                {
+                    group3.Add(group1[0]);
+                    group1.RemoveAt(0);
+                    group3.Add(group2[0]);
+                    group2.RemoveAt(0);
+                    group3.Add(group0[0]);
+                    group0.RemoveAt(0);
+
+                    //将顺子存入 组
+                    nSequence.Add(new List<Card>(group3));
+                    group3.Clear();
+
+                    //处理第一个缓冲列表 如果等于1 则存入组 否则存入撒牌
+                    if(group1.Count == 1)
+                    {
+                        piec.Add(group1[0]);
+                    } else
+                    {
+                        piec.AddRange(group1);
+                    }
+                    group1.Clear();
+
+                    //将后面的缓冲向前移
+                    group1.AddRange(group2);
+                    group2.Clear();
+
+                    //从上一个结果开始从新一轮的判断
+                    if(group0.Count > 0)
+                    {
+                        temp = group0[group0.Count - 1].card;
+                    } else if(group1.Count > 0)
+                    {
+                        group0.Add(group1[group1.Count - 1]);
+                        group1.RemoveAt(group1.Count - 1);
+                        temp = group0[0].card;
+                    } else
+                    {
+                        //如果已经迭代完成则退出循环
+                        if(index + 1 >= card.Count)
+                            break;
+
+                        ++index;
+                        group0.Add(new Card(index, card[index]));
+                        temp = card[index];
+                    }
+                } else
+                {
+
+                    //将结果存入另外一个列表
+                    if(group1.Count == 0)
+                        group1.AddRange(group0);
+                    else
+                        group2.AddRange(group0);
+
+                    group0.Clear();
+
+                    ++index;
+                    group0.Add(new Card(index, card[index]));
+                    temp = card[index];
+                }
+            } else
+            {
+                //group2 大于1 是11 
+                if(group2.Count > 1)
+                {
+                    //加入散牌
+                    piec.AddRange(group2);
+                } else if(group2.Count == 1)
+                {
+                    piec.Add(group2[0]);
+                }
+
+                //group1 大于1 是11
+                if(group1.Count > 1)
+                {
+                    //加入散牌
+                    piec.AddRange(group1);
+                } else if(group1.Count == 1)
+                {
+                    piec.Add(group1[0]);
+                }
+
+                //group0 大于1 是11
+                if(group0.Count > 1)
+                {
+                    //加入散牌
+                    piec.AddRange(group0);
+                } else if(group0.Count == 1)
+                {
+                    piec.Add(group0[0]);
+                }
+                group2.Clear();
+                group1.Clear();
+                group0.Clear();
+
+                //如果已经迭代完成则退出循环
+                if(index + 1 >= card.Count)
+                    break;
+
+                ++index;
+                group0.Add(new Card(index, card[index]));
+                temp = card[index];
+            }
+        } while(true);
+    }
+    */
 
     //动作等级
     public byte GetUserActionRank()
@@ -417,7 +1067,15 @@ public class ProcessorModel: IMGameModel
                 }
             }else if(nPieces[userID].Count == 1)
             {
-                //待完成
+                //如果是两个牌
+                if(nPieces[userID][0].Count == 2)
+                {
+
+                } else
+                {
+                    //如果是一个牌
+
+                }
             }
         } else
         {
@@ -429,7 +1087,7 @@ public class ProcessorModel: IMGameModel
     //胡分析
     public bool AnalyseHuCard()
     {
-        
+        return false;
     }
 
     /*转换*/
