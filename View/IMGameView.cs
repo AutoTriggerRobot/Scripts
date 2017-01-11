@@ -21,17 +21,17 @@ public interface IMGameView
     /*动作*/
 
     //开始
-    bool OnStart();
+    bool OnStart(OptionData.DataBase data);
     //时间消息
     void OnTimer();
     //出牌操作
-    void OnOutCard();
+    void OnOutCard(int userID, int outCardInd,int sortInd);
     //托管控制
     int OnTrusteeControl();
     //第二次摇色子消息
     void OnSiceTwo();
     //发牌
-    void OnSendCard();
+    void OnSendCard(List<int> cards, int handleCard = -1);
     //玩家操作
     void OnUserAction(int userID,int supID, UserAction action, params int[] arg);
 
@@ -80,6 +80,8 @@ public enum UserAction
 {
     empty,          //空
     ready,          //准备
+    turn_dice,      //掷色子
+    send_card,      //发牌
     put_card,       //出牌
     insert_card,    //摸的牌插入手牌
     chi,            //吃      
@@ -93,4 +95,17 @@ public enum UserAction
     ting_cancel,    //取消听
     trustee,        //托管
     AI_cancel,      //取消托管
+
+    ready_flag,     //状态标志
+    send_card_flag, //发牌标志
+    get_card_flag,  //摸牌
+    put_card_flag,
+    chi_card_flag,
+    peng_card_flag,
+    jia_gang_flag,
+    gang_flag,
+    an_gang_flag,
+    chi_hu_flag,
+    hu_flag,
+    ting_flag,
 }

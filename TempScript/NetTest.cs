@@ -18,6 +18,7 @@ using System.Threading;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 public class NetTest: MonoBehaviour,INetworkCop
 {
@@ -33,11 +34,13 @@ public class NetTest: MonoBehaviour,INetworkCop
     public byte[] msgB;
     string msgbuff = "";
     bool isReceive = false;
+    bool isConect = false;
+    bool connect;
 
     void Awake()
     {
         network = new NetworkSys(this, IP, Prot);
-        network.isServerJava = isJava;
+        network.isJavaServer = isJava;
         thread = new Thread(new ThreadStart(network.Connect));
     }
 
@@ -59,24 +62,32 @@ public class NetTest: MonoBehaviour,INetworkCop
             read.text +="Server: "+ msg + "\n";
             Debug.Log("已收到服务器消息：" + "<color=green>" + msg + "</color>");
         }
+
+        if(connect && isConect != network.socket.Connected)
+        {
+            isConect = network.socket.Connected;
+            Debug.Log(isConect);
+        }
     }
 
     void OnDisable()
     {
         Stop();
     }
+
     public void SendMsg()
     {
         SendMsg(input.text);
         Debug.Log("已发送："+input.text);
         input.text = "";
     }
-    
 
     public void Connect()
     {
+        connect = true;
         if(thread == null)
         {
+            network = new NetworkSys(this, IP, Prot);
             thread = new Thread(new ThreadStart(network.Connect));
         }
         if(!thread.IsAlive)
@@ -93,6 +104,7 @@ public class NetTest: MonoBehaviour,INetworkCop
 
     public void Stop()
     {
+        connect = false;
         if(!network.isDispose)
         {
             network.Close("手动断开连接");
@@ -104,12 +116,11 @@ public class NetTest: MonoBehaviour,INetworkCop
         }
     }
 
-
     public void ReadMsg(Message msg)
     {
         isReceive = true;
-        this.msg = msg.SMsg;
         this.msgB = msg.BMsg;
+        this.msg = msg.SMsg;
     }
 
     public int SendMsg(string msg)

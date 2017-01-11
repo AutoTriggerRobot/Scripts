@@ -22,6 +22,7 @@ public class MGameClient : MonoBehaviour, IMGameView
 {
     public int Frame = 60;                         //帧数
     public Mesh[] Meshs;
+    public int ID = 2333;                           //唯一ID
 
     new Camera camera;                              //主摄像机
     LayerMask mask;                                 //事件层级
@@ -33,8 +34,9 @@ public class MGameClient : MonoBehaviour, IMGameView
     int selectHandlecardID = -1;                    //当前选择的HandleCardID
     int currentUserID = 0;                          //当前用户ID  0表示庄家  从庄家逆时针算起 最大为3
     int turnUserID = 0;                             //轮到哪个玩家  0表示庄家  从庄家逆时针轮流
-    UserCard[] UserPriority = new UserCard[4];      //玩家存储次序等于发牌顺序
-
+    UserCard[] userPriority = new UserCard[4];      //玩家存储次序等于发牌顺序
+    List<int> handCard = new List<int>();           //当前用户手牌
+    int handleCard = -1 ;                           //当前用户手中的牌 -1为空
     //界面动作
     MGameClientAction gameAct;
     //游戏参数
@@ -48,13 +50,15 @@ public class MGameClient : MonoBehaviour, IMGameView
     Logic previousState = Logic.empty;
     Logic nextState = Logic.empty;
 
+    
+
     UserAction userState = UserAction.empty;
 
     void Awake()
     {
         Application.targetFrameRate = Frame;
         game = this;
-        control = new MGameLogic();
+        control = new MGameLogic(this);
     }
 
     void Start()
@@ -71,29 +75,70 @@ public class MGameClient : MonoBehaviour, IMGameView
         //可全局操作
         if(globalOperateFlag)
         {
-            TriggerHandCard(UserPriority[currentUserID].handCard, ref selectHandCardID);
-            TriggerHandCard(UserPriority[currentUserID].handleCard, ref selectHandlecardID);
+            TriggerHandCard(userPriority[currentUserID].handCard, ref selectHandCardID);
+            TriggerHandCard(userPriority[currentUserID].handleCard, ref selectHandlecardID);
         }
         //用户可以出牌
-        if(UserPriority[currentUserID].operateFlag)
+        if(userPriority[currentUserID].operateFlag)
         {
             //单击鼠标右键出牌
             if(Input.GetMouseButtonUp(0) && (selectHandCardID >= 0 || selectHandlecardID >= 0))
             {
                 nextState = Logic.out_card;
-                UserPriority[currentUserID].operateFlag = false;
+                userPriority[currentUserID].operateFlag = false;
                 if(selectHandCardID >= 0)
-                    if(UserPriority[currentUserID].handCard[selectHandCardID].animator.GetCurrentAnimatorStateInfo(0).fullPathHash == GlobalData.ANIMA_OnTriggerEnter)
-                        StartCoroutine(LogicCprocessor(currentUserID, UserPriority[currentUserID].handCard.GetMahjongCard(selectHandCardID, 0)));
+                    if(userPriority[currentUserID].handCard[selectHandCardID].animator.GetCurrentAnimatorStateInfo(0).fullPathHash == GlobalData.ANIMA_OnTriggerEnter)
+                        StartCoroutine(LogicCprocessor(currentUserID, userPriority[currentUserID].handCard.GetMahjongCard(selectHandCardID, 0)));
                     else if(selectHandlecardID >= 0)
-                        if(UserPriority[currentUserID].handleCard[0].animator.GetCurrentAnimatorStateInfo(0).fullPathHash == GlobalData.ANIMA_OnTriggerEnter)
-                            StartCoroutine(LogicCprocessor(currentUserID, UserPriority[currentUserID].handleCard.GetMahjongCard()));
+                        if(userPriority[currentUserID].handleCard[0].animator.GetCurrentAnimatorStateInfo(0).fullPathHash == GlobalData.ANIMA_OnTriggerEnter)
+                            StartCoroutine(LogicCprocessor(currentUserID, userPriority[currentUserID].handleCard.GetMahjongCard()));
             }
         }
     }
 
+    //临时测试
+    bool vReady = true;
+    bool vGuo;
+    bool vHu;
+    bool vChi;
+    bool vPeng;
+    bool vGang;
+    bool vJiaGang;
+
     void OnGUI()
     {
+
+        if(vReady && GUILayout.Button("准备"))
+        {
+            vReady = false;
+            control.SetStatusFlag(ID, UserAction.ready);
+        }
+        if(vGuo && GUILayout.Button("过"))
+        {
+
+        }
+        if(vHu && GUILayout.Button("胡"))
+        {
+
+        }
+        if(vPeng && GUILayout.Button("碰"))
+        {
+
+        }
+        if(vGang && GUILayout.Button("杠"))
+        {
+
+        }
+        if(vChi && GUILayout.Button("吃"))
+        {
+
+        }
+        if(vJiaGang && GUILayout.Button("加杠"))
+        {
+
+        }
+
+        /*
         if(GUILayout.Button("开始"))
         {
             game.OnStart();
@@ -118,6 +163,29 @@ public class MGameClient : MonoBehaviour, IMGameView
         {
             game.OnUserAction(0, 0, UserAction.hu);
         }
+        */
+    }
+
+    //混乱手牌（假象）
+    List<int> RandCard(List<int> cards)
+    {
+        List<int> tempCard = new List<int>(cards);
+        int i = cards.Count;
+        int temp;
+        int indexA;
+        int indexB;
+
+        while(i > 0)
+        {
+            indexA = Mathf.FloorToInt(UnityEngine.Random.value * i);
+            indexB = --i;
+            if(indexA == indexB)
+                continue;
+            temp = tempCard[indexA];
+            tempCard[indexA] = tempCard[indexB];
+            tempCard[indexB] = temp;
+        }
+        return tempCard;
     }
 
     //手动逻辑
@@ -125,6 +193,7 @@ public class MGameClient : MonoBehaviour, IMGameView
     {
         switch(nextState)
         {
+            //掷色子
             case Logic.turn_dice:
                 previousState = nextState;
                 nextState = Logic.empty;
@@ -134,17 +203,20 @@ public class MGameClient : MonoBehaviour, IMGameView
                 yield return gameAct.TurnDice(gameData.dice_num[0], gameData.dice_num[1]);
                 //设置发牌起始位置
                 index = 2 * Mathf.Min(gameData.dice_num[0], gameData.dice_num[1]);
-                control.EndStatusFlag(userID, UserAction.empty, previousState);
+                control.EndStatusFlag(userID, UserAction.turn_dice, previousState);
                 break;
+            //发牌
             case Logic.add_hand_card:
                 previousState = nextState;
                 nextState = Logic.add_hand_card_end;
                 //2秒后色子消失
                 StartCoroutine(gameAct.DisapperDice(2f));
                 //确定取牌次序
-                gameAct.CardDirection(gameData.get_card_priority);
-                //发牌顺序
-                SetPriority(gameData.player_priority);
+                int prio = (gameData.dice_num[0] + gameData.dice_num[1]) % gameData.player_priority;
+                gameAct.CardDirection(prio);
+                
+                //临时牌 保存乱序后的手牌
+                List<int> cardTemp = RandCard(handCard); 
                 //每个玩家抽取三轮
                 for(int i = 0; i < 3; ++i)
                 {
@@ -153,14 +225,14 @@ public class MGameClient : MonoBehaviour, IMGameView
                     {
                         for(int k = 0; k < 4; ++k)
                         {
-                            if(UserPriority[j].handCard.IsNotFull)
+                            if(userPriority[j].handCard.IsNotFull)
                             {
-                                yield return gameAct.AddHandCard(UserPriority[j], gameAct.group_H.GetMahjongCard(index));
+                                yield return gameAct.AddHandCard(userPriority[j], gameAct.group_H.GetMahjongCard(index));
                             } else
-                                Debug.LogError("<MGameClient::LogicCprocessor>:玩家手牌已满." + UserPriority[j].ToString());
+                                Debug.LogError("<MGameClient::LogicCprocessor>:玩家手牌已满." + userPriority[j].ToString());
                         }
                         //翻牌
-                        yield return gameAct.DisplayCard(UserPriority[j]);
+                        yield return gameAct.DisplayCard(userPriority[j]);
                         //每次抽完牌稍微停滞一下
                         yield return new WaitForSeconds(0.1f);
                     }
@@ -168,52 +240,68 @@ public class MGameClient : MonoBehaviour, IMGameView
                 //再各多发一张
                 for(int i = 0; i < 4; ++i)
                 {
-                    if(UserPriority[i].handCard.IsNotFull)
+                    if(userPriority[i].handCard.IsNotFull)
                         //使用函数内部延迟
-                        yield return gameAct.AddHandCard(UserPriority[i], gameAct.group_H.GetMahjongCard(index));
+                        yield return gameAct.AddHandCard(userPriority[i], gameAct.group_H.GetMahjongCard(index));
                     else
-                        Debug.LogError("<MGameClient::LogicCprocessor>:玩家手牌已满." + UserPriority[i].ToString());
-                    //翻牌
-                    yield return gameAct.DisplayCard(UserPriority[i]);
+                        Debug.LogError("<MGameClient::LogicCprocessor>:玩家手牌已满." + userPriority[i].ToString());
+                    //翻牌 如果是当前用户 则替换成需要的牌
+                    if(i == currentUserID)
+                        yield return gameAct.DisplayCard(userPriority[i], cardTemp);
+                    else
+                        yield return gameAct.DisplayCard(userPriority[i]);
                     //每次抽完牌稍微停滞一下
                     yield return new WaitForSeconds(0.1f);
                 }
-                //整理手牌                                                  ----未完成
+                //整理手牌                                                  
+                yield return new WaitForSeconds(0.5f);
+                yield return gameAct.SortCard(userPriority[currentUserID], handCard);
 
                 //庄家摸牌
-                if(UserPriority[userID].handleCard.IsNotFull)
-                    yield return gameAct.AddHandleCard(UserPriority[userID], gameAct.group_H.GetMahjongCard(index));
+                if(currentUserID != 0 && userPriority[userID].handleCard.IsNotFull)
+                    yield return gameAct.AddHandleCard(userPriority[userID], gameAct.group_H.GetMahjongCard(index));
+                else if(userPriority[userID].handleCard.IsNotFull)
+                {
+                    MahjongPrefab cardtemp = gameAct.group_H.GetMahjongCard(index);
+                    //替换模型
+                    cardtemp.mesh.mesh = ResoucreMtr.Instance.GetMesh(handleCard);
+                    yield return gameAct.AddHandleCard(userPriority[userID],cardtemp);
+                }
 
                 yield return new WaitForSeconds(.3f);
                 yield return LogicCprocessor(userID);
                 break;
+            //发牌结束
             case Logic.add_hand_card_end:
                 previousState = nextState;
                 nextState = Logic.empty;
                 //可以界面操作
                 globalOperateFlag = true;
-                //允许庄家操作
-                UserPriority[userID].operateFlag = true;
+                //允许玩家操作
+                userPriority[userID].operateFlag = true;
 
-                control.EndStatusFlag(userID, UserAction.empty, previousState);
+                control.EndStatusFlag(userID, UserAction.send_card, previousState);
                 break;
+            //出牌
             case Logic.out_card:
                 previousState = nextState;
                 nextState = Logic.empty;
                 //出牌
-                yield return gameAct.AddOutCard(UserPriority[userID], mahjong);
+                yield return gameAct.AddOutCard(userPriority[userID], mahjong);
                 break;
+            //摸牌
             case Logic.get_handlecard:
                 previousState = nextState;
                 nextState = Logic.empty;
                 //获取手牌
-                if(UserPriority[userID].handleCard.IsNotFull)
-                    yield return gameAct.AddHandleCard(UserPriority[userID], gameAct.group_H.GetMahjongCard(index));
+                if(userPriority[userID].handleCard.IsNotFull)
+                    yield return gameAct.AddHandleCard(userPriority[userID], gameAct.group_H.GetMahjongCard(index));
 
-                UserPriority[userID].operateFlag = true;
+                userPriority[userID].operateFlag = true;
 
                 control.EndStatusFlag(userID,UserAction.empty, previousState);
                 break;
+            //胡
             case Logic.hu:
                 previousState = nextState;
                 nextState = Logic.empty;
@@ -222,8 +310,8 @@ public class MGameClient : MonoBehaviour, IMGameView
                 //玩家控制关闭并摊开玩家手牌
                 for(int i = 0;i< 4; ++i)
                 {
-                    UserPriority[i].operateFlag = false;
-                    yield return gameAct.TurnOverCard(UserPriority[i]);
+                    userPriority[i].operateFlag = false;
+                    yield return gameAct.TurnOverCard(userPriority[i]);
                 }
                 break;
 
@@ -243,14 +331,14 @@ public class MGameClient : MonoBehaviour, IMGameView
     {
         //设置当前用户ID
         currentUserID = priority;
-        UserPriority[priority % 4] = gameAct.hostUser;
-        UserPriority[(1 + priority) % 4] = gameAct.rightUser;
-        UserPriority[(2 + priority) % 4] = gameAct.frontUser;
-        UserPriority[(3 + priority) % 4] = gameAct.leftUser;
+        userPriority[priority % 4] = gameAct.hostUser;
+        userPriority[(1 + priority) % 4] = gameAct.rightUser;
+        userPriority[(2 + priority) % 4] = gameAct.frontUser;
+        userPriority[(3 + priority) % 4] = gameAct.leftUser;
     }
 
-    //某个玩家出某个牌
-    IEnumerator UserPutCard(int userID,int cardID)
+    //某个玩家出某个牌 将手中的牌插入某个位置 -1表示空操作
+    IEnumerator UserPutCard(int userID,int cardID,int sortID)
     {
         //摸牌
         nextState = Logic.get_handlecard;
@@ -259,12 +347,16 @@ public class MGameClient : MonoBehaviour, IMGameView
         nextState = Logic.out_card;
         //如果ID大于手牌数量 则出刚摸上来的牌
         MahjongPrefab mahjong;
-        if(cardID >= UserPriority[userID].handCard.Count)
-            mahjong = UserPriority[userID].handleCard.GetMahjongCard();
+        if(cardID >= userPriority[userID].handCard.Count)
+            mahjong = userPriority[userID].handleCard.GetMahjongCard();
         else
-            mahjong = UserPriority[userID].handCard.GetMahjongCard(cardID,0);  //0表示从左手边开始算起 第cardID个牌
+            mahjong = userPriority[userID].handCard.GetMahjongCard(cardID,0);  //0表示从左手边开始算起 第cardID个牌
         yield return LogicCprocessor(userID,mahjong);
-
+        //将手牌插入
+        if(!userPriority[userID].handleCard.IsEmpty)
+        {
+            yield return gameAct.InsertToHandCard(userPriority[userID], sortID, userPriority[userID].handleCard.GetMahjongCard());
+        }
         control.EndStatusFlag(userID,UserAction.put_card);
     }
 
@@ -273,7 +365,7 @@ public class MGameClient : MonoBehaviour, IMGameView
     {
 
         //吃掉出牌玩家刚出的牌
-        MahjongPrefab card1 = UserPriority[supID].outCardPoint.GetMahjongCard();
+        MahjongPrefab card1 = userPriority[supID].outCardPoint.GetMahjongCard();
         //获取吃牌的第一个手牌
         MahjongPrefab card2 ;
         //第二个时手牌已减1 对应索引减1 第三个要减2
@@ -283,19 +375,19 @@ public class MGameClient : MonoBehaviour, IMGameView
         {
             case UserAction.chi:
             case UserAction.peng:
-                card2 = UserPriority[userID].handCard.GetMahjongCard(arg[0], 0);
-                card3 = UserPriority[userID].handCard.GetMahjongCard(arg[1] - 1, 0);
-                yield return gameAct.AddPengChi(UserPriority[userID], CardActType.Chi, card1, card2, card3);
+                card2 = userPriority[userID].handCard.GetMahjongCard(arg[0], 0);
+                card3 = userPriority[userID].handCard.GetMahjongCard(arg[1] - 1, 0);
+                yield return gameAct.AddPengChi(userPriority[userID], CardActType.Chi, card1, card2, card3);
                 break;
             case UserAction.ming_gang:
-                card2 = UserPriority[userID].handCard.GetMahjongCard(arg[0], 0);
-                card3 = UserPriority[userID].handCard.GetMahjongCard(arg[1] - 1, 0);
-                MahjongPrefab card4 = UserPriority[userID].handCard.GetMahjongCard(arg[2] - 2, 0);
-                yield return gameAct.AddGang(UserPriority[userID], CardActType.MingGang, card1, card2, card3, card4);
+                card2 = userPriority[userID].handCard.GetMahjongCard(arg[0], 0);
+                card3 = userPriority[userID].handCard.GetMahjongCard(arg[1] - 1, 0);
+                MahjongPrefab card4 = userPriority[userID].handCard.GetMahjongCard(arg[2] - 2, 0);
+                yield return gameAct.AddGang(userPriority[userID], CardActType.MingGang, card1, card2, card3, card4);
                 break;
              //吃胡将吃牌加入Handlecard
             case UserAction.chi_hu:
-                yield return gameAct.AddHandleCard(UserPriority[userID], card1);
+                yield return gameAct.AddHandleCard(userPriority[userID], card1);
                 nextState = Logic.hu;
                 yield return LogicCprocessor();
                 break;
@@ -306,36 +398,19 @@ public class MGameClient : MonoBehaviour, IMGameView
     //暗杠  同上                                                                
     IEnumerator UserAnGangCard(int userID,int supID,params int[] arg)
     {
-        MahjongPrefab card1 = UserPriority[userID].handCard.GetMahjongCard(arg[0], 0);
-        MahjongPrefab card2 = UserPriority[userID].handCard.GetMahjongCard(arg[1] - 1, 0);
-        MahjongPrefab card3 = UserPriority[userID].handCard.GetMahjongCard(arg[2] - 2, 0);
+        MahjongPrefab card1 = userPriority[userID].handCard.GetMahjongCard(arg[0], 0);
+        MahjongPrefab card2 = userPriority[userID].handCard.GetMahjongCard(arg[1] - 1, 0);
+        MahjongPrefab card3 = userPriority[userID].handCard.GetMahjongCard(arg[2] - 2, 0);
         //第四张有可能是刚摸上来的
         MahjongPrefab card4;
-        if(arg[3] - 3 >= UserPriority[userID].handCard.Count)
-            card4 = UserPriority[userID].handleCard.GetMahjongCard();
+        if(arg[3] - 3 >= userPriority[userID].handCard.Count)
+            card4 = userPriority[userID].handleCard.GetMahjongCard();
         else
-            card4 = UserPriority[userID].handCard.GetMahjongCard(arg[3] - 3, 0);
+            card4 = userPriority[userID].handCard.GetMahjongCard(arg[3] - 3, 0);
 
-        yield return gameAct.AddGang(UserPriority[userID], CardActType.AnGang, card1, card2, card3, card4);
+        yield return gameAct.AddGang(userPriority[userID], CardActType.AnGang, card1, card2, card3, card4);
         control.EndStatusFlag(userID, UserAction.an_gang);
     }
-
-    //摸牌插入手牌
-    IEnumerator UserInsetCard(int userID,int index)
-    {
-        //判定是否有handlecard 如果有 则加入手牌
-        if(!UserPriority[userID].handleCard.IsEmpty)
-        {
-            yield return gameAct.InsertToHandCard(UserPriority[userID], index, UserPriority[userID].handleCard.GetMahjongCard());
-            control.EndStatusFlag(userID, UserAction.insert_card);
-        } else
-        {
-            //校验出牌                                                      -------未完成
-        }
-
-    }
-
-    //发牌前替换手牌
 
     //自动出牌                                                                      ----临时
     void AutoOutCard()
@@ -348,8 +423,8 @@ public class MGameClient : MonoBehaviour, IMGameView
         } else
         {
             nextState = Logic.out_card;
-            UserPriority[turnUserID].operateFlag = false;
-            StartCoroutine(LogicCprocessor(turnUserID, UserPriority[turnUserID].handleCard.GetMahjongCard()));
+            userPriority[turnUserID].operateFlag = false;
+            StartCoroutine(LogicCprocessor(turnUserID, userPriority[turnUserID].handleCard.GetMahjongCard()));
         }
     }
 
@@ -402,7 +477,7 @@ public class MGameClient : MonoBehaviour, IMGameView
 
 
     //开始
-    bool IMGameView.OnStart()
+    bool IMGameView.OnStart(OptionData.DataBase data)
     {
         //游戏开始
         gameStartFlag = true;
@@ -412,6 +487,10 @@ public class MGameClient : MonoBehaviour, IMGameView
         previousState = Logic.add_group;
         //下一个状态
         nextState = Logic.turn_dice;
+        //配置
+        gameData = data;
+        //发牌顺序
+        SetPriority(gameData.player_priority);
         //重置
         gameAct.Reset();
         //随便连起链表便于洗牌
@@ -420,7 +499,7 @@ public class MGameClient : MonoBehaviour, IMGameView
         StartCoroutine(gameAct.AddGroup(() =>
         {
             //洗完牌摇色子
-            StartCoroutine(LogicCprocessor(0));
+            StartCoroutine(LogicCprocessor(currentUserID));
         }));
 
         return true;
@@ -432,8 +511,8 @@ public class MGameClient : MonoBehaviour, IMGameView
         AutoOutCard();
     }
 
-    //出牌操作                                                                      ----临时
-    void IMGameView.OnOutCard()
+    //出牌操作                                                                     
+    void IMGameView.OnOutCard(int userID, int outCardInd, int sortInd)
     {
         AutoOutCard();
     }
@@ -453,8 +532,11 @@ public class MGameClient : MonoBehaviour, IMGameView
     }
 
     //发牌
-    void IMGameView.OnSendCard()
+    void IMGameView.OnSendCard(List<int> cards,int handleCard)
     {
+        //获取手牌
+        this.handCard = cards;
+        this.handleCard = handleCard;
         nextState = Logic.add_hand_card;
         StartCoroutine(LogicCprocessor());
     }
@@ -464,10 +546,9 @@ public class MGameClient : MonoBehaviour, IMGameView
         switch(action)
         {
             case UserAction.put_card:
-                StartCoroutine(UserPutCard(userID, arg[0]));
+                StartCoroutine(UserPutCard(userID, arg[0],arg[1]));
                 break;
             case UserAction.insert_card:
-                StartCoroutine(UserInsetCard(userID, arg[0]));
                 break;
             case UserAction.chi:
             case UserAction.peng:

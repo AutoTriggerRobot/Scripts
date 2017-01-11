@@ -21,7 +21,7 @@ public class ContainerTest : MonoBehaviour
 {
     MGameClientAction GameAct;
     ProcessorModel processorModel;
-    List<byte> test;
+    List<int> test;
 
 
     void Start()

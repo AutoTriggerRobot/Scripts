@@ -24,11 +24,11 @@ using System.Threading;
 public class NetworkSys : IDisposable
 {
     //服务端是否是Java
-    public bool isServerJava = true;
+    public bool isJavaServer = true;
     //释放标志
     public volatile bool isDispose;
 
-    Socket socket;
+    public Socket socket;
     //回调
     AsyncCallback aCallback;
     //缓冲
@@ -268,7 +268,7 @@ public class NetworkSys : IDisposable
     /// <param name="value"></param>
     public int ReadInt(byte[] intbytes)
     {
-        if(isServerJava)
+        if(isJavaServer)
         Array.Reverse(intbytes);
         return BitConverter.ToInt32(intbytes, 0);
     }
@@ -280,7 +280,7 @@ public class NetworkSys : IDisposable
     public byte[] WriterInt(int value)
     {
         byte[] bs = BitConverter.GetBytes(value);
-        if(isServerJava)
+        if(isJavaServer)
         Array.Reverse(bs);
         return bs;
     }
@@ -345,7 +345,7 @@ public class NetworkSys : IDisposable
         byte[] bit = null;
         using(MemoryStream ms = new MemoryStream())
         {
-            using(BinaryWriter bw = new BinaryWriter(ms, UTF8Encoding.Default))
+            using(BinaryWriter bw = new BinaryWriter(ms,UTF8Encoding.Default))
             {
                 byte[] msgBuff = msg.BMsg;
 
@@ -393,25 +393,27 @@ public struct Message
     public Message(byte[] msg)
     {
         BMsg = msg;
-        using(MemoryStream ms = new MemoryStream(msg))
-        {
-            using(BinaryReader br = new BinaryReader(ms, UTF8Encoding.Default))
-            {
-                SMsg = br.ReadString();
-            }
-        }
+        SMsg = Encoding.UTF8.GetString(msg);
+        //using(MemoryStream ms = new MemoryStream(msg))
+        //{
+        //    using(BinaryReader br = new BinaryReader(ms, UTF8Encoding.Default))
+        //    {
+        //        SMsg = br.ReadString();
+        //    }
+        //}
     }
 
     public Message(string msg)
     {
         SMsg = msg;
-        using(MemoryStream ms = new MemoryStream())
-        {
-            using(BinaryWriter bw = new BinaryWriter(ms, UTF8Encoding.Default))
-            {
-                bw.Write(msg);
-                BMsg = ms.ToArray();
-            }
-        }
+        BMsg = Encoding.UTF8.GetBytes(msg);
+        //using(MemoryStream ms = new MemoryStream())
+        //{
+        //    using(BinaryWriter bw = new BinaryWriter(ms, UTF8Encoding.Default))
+        //    {
+        //        bw.Write(msg);
+        //        BMsg = ms.ToArray();
+        //    }
+        //}
     }
 }

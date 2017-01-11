@@ -19,36 +19,48 @@ using UnityEngine;
 
 public class MGameLogic: IController
 {
-    //登入
-    void IController.OnLogin()
-    {
+    IMGameModel proce;
+    IMGameView view;
 
+    public MGameLogic(IMGameView game)
+    {
+        proce = new ProcessorModel(this);
+        view = game;
+    }
+
+    //登入
+    void IController.OnLogin(string name, string password)
+    {
+        
     }
     //确认设置
-    void IController.OnOption()
+    void IController.OnOption(OptionData.DataBase data)
     {
-
+        
     }
     //基础积分
     void IController.SetCellScore()
     {
 
     }
+
     //庄家
     void IController.SetBankerUser()
     {
 
     }
+
     //状态设置标志
-    void IController.SetStatusFlag(int userID, UserAction act, params int[] arg)
+    void IController.SetStatusFlag(int userID, UserAction act, params List<int>[] arg)
     {
 
         switch(act)
         {
             case UserAction.ready:
                 break;
-            //arg[0]
+            //出牌 arg[0]出牌id arg[1]插入id 如果为-1则忽略
             case UserAction.put_card:
+                view.OnUserAction(userID, -1, act, arg[0][0], arg[0][1]);
                 break;
             //arg[0] arg[1] arg[2] or arg[3]
             case UserAction.chi:
@@ -73,10 +85,40 @@ public class MGameLogic: IController
                 break;
             case UserAction.AI_cancel:
                 break;
+
+            case UserAction.ready_flag:
+                break;
+            //发牌标志
+            case UserAction.send_card_flag:
+                //发牌 arg[0]当前用户手牌  arg[1][0]当前用户如果是庄家则这是摸牌
+                view.OnSendCard(arg[0],arg[1][0]);
+                break;
+            case UserAction.get_card_flag:
+                break;
+            case UserAction.put_card_flag:
+                break;
+            case UserAction.chi_card_flag:
+                break;
+            case UserAction.peng_card_flag:
+                break;
+            case UserAction.jia_gang_flag:
+                break;
+            case UserAction.gang_flag:
+                break;
+            case UserAction.an_gang_flag:
+                break;
+            case UserAction.chi_hu_flag:
+                break;
+            case UserAction.hu_flag:
+                break;
+            case UserAction.ting_flag:
+                break;
+            
         }
+        proce.SetStatusFlag(userID, act, arg);
     }
     //状态完成标志
-    void IController.EndStatusFlag(int userID, UserAction act, Logic logic, params int[] arg)
+    void IController.EndStatusFlag(int userID, UserAction act, Logic logic, params List<int>[] arg)
     {
         switch(logic)
         {
@@ -124,6 +166,7 @@ public class MGameLogic: IController
                 }
                 break;
         }
+        proce.EndStatusFlag(userID, act, arg);
     }
 
     //设置玩家

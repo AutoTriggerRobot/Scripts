@@ -19,6 +19,7 @@ using UnityEngine;
 
 public class OptionData
 {
+    
     //配置
     public struct Configuration
     {
@@ -29,21 +30,14 @@ public class OptionData
     public struct DataBase
     {
         //发牌方向
-        public byte card_direction;         //逆时针发牌 0表示从右家开始 依次类推 主角最大为3
-        //取牌次序
-        public byte get_card_priority;      //顺时针取牌  0表示从主角开始 1表示从右家开始 依次类推 右家最大为3
-        //出牌次序
-        public byte send_card_priority;     //出牌次序  取值同上
-        public byte[] dice_num;             //色子数字
-        public byte get_card_offset;        //取牌偏移值
-        public byte player_priority;        //发牌顺序 顺时针发牌顺序  0从主角开始发牌  1从右家开始发牌  2从对家开始发牌  3从左家开始发牌
-        public DataBase(byte i = 0)
+        public int card_direction;         //逆时针发牌 0表示从右家开始 依次类推 主角最大为3
+        public int[] dice_num;             //色子数字
+        public int player_priority;        //发牌顺序 顺时针发牌顺序  0从主角开始发牌  1从右家开始发牌  2从对家开始发牌  3从左家开始发牌
+
+        public DataBase(int i = 0)
         {
             card_direction = 0;
-            get_card_priority = 0;
-            send_card_priority = 0;
-            dice_num = new byte[2] { 6, 6 };
-            get_card_offset = 6;
+            dice_num = new int[2] { 6, 6 };
             player_priority = 3;
          }
     }

@@ -18,5 +18,15 @@ using UnityEngine;
 
 public interface IMGameModel
 {
- 
+    //登录验证
+    void ValidLogin(string name, string password);
+
+    //界面操作
+    void UserOperate(int ID);
+
+    //状态标志
+    void SetStatusFlag(int userID, UserAction act, params List<int>[] arg);
+
+    void EndStatusFlag(int userID, UserAction act, params List<int>[] arg);
+
 }

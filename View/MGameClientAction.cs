@@ -275,7 +275,7 @@ public class MGameClientAction
     }
 
     //绑定顺序
-    public void CardDirection(byte i)
+    public void CardDirection(int i)
     {
         //绑定前断开所有连接
         BreakAllLink();
@@ -425,13 +425,27 @@ public class MGameClientAction
     }
 
     //发完牌后为玩家显示手牌
-    public IEnumerator DisplayCard(UserCard user)
+    public IEnumerator DisplayCard(UserCard user,List<int> card = null)
     {
-        foreach(MahjongPrefab item in user.handCard)
+        for(int i = 0;i<user.handCard.Count;++i)
         {
             //只有在初始状态的牌才需要翻开
-            if(item.animator.GetCurrentAnimatorStateInfo(0).fullPathHash == GlobalData.ANIMA_CardIdle)
-                item.animator.Play(GlobalData.ANIMA_GetCard);
+            if(user.handCard[i].animator.GetCurrentAnimatorStateInfo(0).fullPathHash == GlobalData.ANIMA_CardIdle)
+            {
+                if(card!=null)
+                user.handCard[i].mesh.mesh = ResoucreMtr.Instance.GetMesh(card[i]);
+                user.handCard[i].animator.Play(GlobalData.ANIMA_GetCard);
+            }
+        }
+        yield return 0;
+    }
+
+    //整理手牌
+    public IEnumerator SortCard(UserCard user, List<int> card)
+    {
+        for(int i = 0;i< user.handCard.Count; ++i)
+        {
+            user.handCard[i].mesh.mesh = ResoucreMtr.Instance.GetMesh(card[i]);
         }
         yield return 0;
     }
