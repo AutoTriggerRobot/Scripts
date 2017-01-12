@@ -31,9 +31,9 @@ public interface IMGameView
     //第二次摇色子消息
     void OnSiceTwo();
     //发牌
-    void OnSendCard(List<int> cards, int handleCard = -1);
+    void OnSendCard(List<int> cards);
     //玩家操作
-    void OnUserAction(int userID,int supID, UserAction action, params int[] arg);
+    void OnUserAction(int userID, UserAction action, params List<int>[] arg);
 
     //玩家准备
     void OnReady(int userID);
@@ -82,11 +82,12 @@ public enum UserAction
     ready,          //准备
     turn_dice,      //掷色子
     send_card,      //发牌
+    get_card,       //摸牌
     put_card,       //出牌
     insert_card,    //摸的牌插入手牌
     chi,            //吃      
     peng,           //碰
-    jia_gang,       //加杠
+    add_gang,       //补杠
     ming_gang,      //明杠
     an_gang,        //暗杠
     chi_hu,         //吃胡
@@ -97,15 +98,17 @@ public enum UserAction
     AI_cancel,      //取消托管
 
     ready_flag,     //状态标志
+    pass_flag,      //过
     send_card_flag, //发牌标志
-    get_card_flag,  //摸牌
     put_card_flag,
     chi_card_flag,
     peng_card_flag,
-    jia_gang_flag,
+    add_gang_flag,
     gang_flag,
     an_gang_flag,
     chi_hu_flag,
     hu_flag,
     ting_flag,
+
+    end,            //游戏结束
 }

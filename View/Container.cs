@@ -373,7 +373,7 @@ public class Container: IEnumerable
     }
 
     //获取预设 功能同上
-    public MahjongPrefab GetMahjongCard(int len = 0, int direction = 1, bool isSort = true)
+    public MahjongPrefab GetMahjongCard(int index = 0, int direction = 1, bool isSort = true)
     {
         MahjongPrefab mahjong = new MahjongPrefab();
         try
@@ -383,25 +383,25 @@ public class Container: IEnumerable
                 //如果当前容器不是末端则执行下一个容器 如果下个容器不是满状态且小于偏移值则无视前面容器并重置偏移值
                 if(nextContainer != null && !nextContainer.IsEmpty)
                 {
-                    if(nextContainer.Count > len)
-                        return nextContainer.GetMahjongCard(len, direction , isSort);
+                    if(nextContainer.Count > index)
+                        return nextContainer.GetMahjongCard(index, direction , isSort);
                     else
-                        len = 0;
+                        index = 0;
                 }
                 if(!IsEmpty)
                 {
                     //如果偏移值大于子物体数量则重置偏移并跳转上一个容器
-                    if(childrenList.Count > len)
+                    if(childrenList.Count > index)
                     {
-                        mahjong = childrenList[childrenList.Count - 1 - len];
-                        RemoveAt(childrenList.Count - 1 - len, isSort);
+                        mahjong = childrenList[childrenList.Count - 1 - index];
+                        RemoveAt(childrenList.Count - 1 - index, isSort);
                         return mahjong;
                     } 
                 }
                 //如果列表存在子物体且前容器不为空 则继续向前
                 if(previousContainer != null && !IsAllEmpty)
                 {
-                    return previousContainer.GetMahjongCard( len, direction, isSort);
+                    return previousContainer.GetMahjongCard( index, direction, isSort);
                 }
 
                 //如果只剩下唯一一个容器 则无视偏移值
@@ -420,7 +420,7 @@ public class Container: IEnumerable
                         temp = nextContainer;
                         while(temp.nextContainer != null)
                             temp = temp.nextContainer;
-                        return temp.GetMahjongCard(len, direction , isSort);
+                        return temp.GetMahjongCard(index, direction , isSort);
                     }
                 }
                 Debug.Log("麻将已经抽完");
@@ -430,13 +430,13 @@ public class Container: IEnumerable
                 //如果当前容器不是头 则执行上一个容器
                 if(previousContainer != null && !previousContainer.IsEmpty)
                 {
-                    return previousContainer.GetMahjongCard( len, direction , isSort);
+                    return previousContainer.GetMahjongCard( index, direction , isSort);
                 }
                 if(!IsEmpty)
                 {
                     //如果起始长度大于子物体数量则调整偏移量
-                    while(len >= childrenList.Count)
-                        len--;
+                    while(index >= childrenList.Count)
+                        index--;
                     //判断是不是最后一个 如果是就返回
                     if(childrenList.Count == 1)
                     {
@@ -444,9 +444,9 @@ public class Container: IEnumerable
                         Reset();
                         return mahjong;
                     }
-                    int current = len;
-                    int next = len + 1;
-                    int previous = len - 1;
+                    int current = index;
+                    int next = index + 1;
+                    int previous = index - 1;
                     if(type == ContainerTypes.Group)
                     {
                         //判断麻将上面有没麻将  如果有返回上面的麻将
@@ -481,7 +481,7 @@ public class Container: IEnumerable
                 }
                 if(nextContainer != null)
                 {
-                    return nextContainer.GetMahjongCard(len, direction ,isSort);
+                    return nextContainer.GetMahjongCard(index, direction ,isSort);
                 }
 
                 Debug.Log("麻将已经抽完");

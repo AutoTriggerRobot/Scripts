@@ -28,7 +28,7 @@ public interface IController
     void SetBankerUser();
     //状态标志
     void SetStatusFlag(int userID, UserAction act, params List<int>[] arg);
-    void EndStatusFlag(int userID, UserAction act, Logic logic = Logic.empty, params List<int>[] arg);
+    void EndStatusFlag(int userID, UserAction act, params List<int>[] arg);
 
     //设置玩家
     void SetDiscUser();

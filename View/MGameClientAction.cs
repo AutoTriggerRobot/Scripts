@@ -113,7 +113,7 @@ public class MGameClientAction
     int CheckState(MahjongPrefab card,CardActType type)
     {
         int currenState = card.animator.GetCurrentAnimatorStateInfo(0).fullPathHash;
-        if(currenState == GlobalData.ANIMA_GetCard)
+        if(currenState == GlobalData.ANIMA_GetCard || currenState == GlobalData.ANIMA_OnTriggerEnter ||　currenState == GlobalData.ANIMA_OnTriggerExit || currenState == GlobalData.ANIMA_InsertCard)
             switch(type)
             {
                 case CardActType.AnGang:
@@ -123,17 +123,9 @@ public class MGameClientAction
             }
         if(currenState == GlobalData.ANIMA_OutCard)
             return GlobalData.ANIMA_ChiPengCard;
-        if(currenState == GlobalData.ANIMA_TurnOverCard)
+        if(currenState == GlobalData.ANIMA_TurnOverCard || currenState == GlobalData.ANIMA_ChiPengCard)
             return -1;
-        if(currenState == GlobalData.ANIMA_InsertCard)
-            switch(type)
-            {
-                case CardActType.AnGang:
-                    return GlobalData.ANIMA_CloseCard;
-                default:
-                    return GlobalData.ANIMA_TurnOverCard;
-            }
-        if(currenState == GlobalData.ANIMA_CardIdle)
+        if(currenState == GlobalData.ANIMA_CardIdle || currenState == GlobalData.ANIMA_CloseCard)
             switch(type)
             {
                 case CardActType.AnGang:
@@ -141,16 +133,6 @@ public class MGameClientAction
                 default:
                     return GlobalData.ANIMA_TurnOverCard;
             }
-        if(currenState == GlobalData.ANIMA_CloseCard)
-            switch(type)
-            {
-                case CardActType.AnGang:
-                    return -1;
-                default:
-                    return GlobalData.ANIMA_TurnOverCard;
-            }
-        if(currenState == GlobalData.ANIMA_ChiPengCard)
-            return -1;
         return -1;
     }
 
