@@ -494,6 +494,72 @@ public class MGameClientAction
         yield return new WaitForSeconds(.4f);
     }
 
+    //补杠 将补杠插入补杠区域
+    public IEnumerator InsertToAddGangCard(UserCard user,int index,MahjongPrefab mahjong)
+    {
+        //先取出预设
+        Transform prefab = user.mingGangPoint.GetCard(index);
+        Transform newPrefab = spawnPool.Spawn("MingGang");
+
+        //各个牌
+        Transform card1 = prefab.GetChild(0).GetChild(0);
+        Transform card2 = prefab.GetChild(1).GetChild(0);
+        Transform card3 = prefab.GetChild(2).GetChild(0);
+        Transform card4 = mahjong.transform;
+
+        //各个牌的位置
+        Transform card1Point = newPrefab.GetChild(0);
+        Transform card2Point = newPrefab.GetChild(1);
+        Transform card3Point = newPrefab.GetChild(2);
+        Transform card4Point = newPrefab.GetChild(3);
+
+        //调整各个牌的缩放
+        card1.localScale = card1Point.localScale;
+        card2.localScale = card2Point.localScale;
+        card3.localScale = card3Point.localScale;
+        card4.localScale = card4Point.localScale;
+
+        //下一个动画
+        int card4Anima = CheckState(mahjong, CardActType.MingGang);
+
+        //播放动画
+        if(card4Anima != -1)
+            mahjong.animator.Play(card4Anima);
+
+        //绑定到为预设
+        card1.SetParent(card1Point);
+        card2.SetParent(card2Point);
+        card3.SetParent(card3Point);
+        card4.SetParent(card4Point);
+
+        //旋转角度调整至预设角度
+        card1.rotation = card1Point.rotation;
+        card2.rotation = card2Point.rotation;
+        card3.rotation = card3Point.rotation;
+        card4.rotation = card4Point.rotation;
+
+        //旋转角度调整至预设角度
+        card1.localPosition = Vector3.zero;
+        card2.localPosition = Vector3.zero;
+        card3.localPosition = Vector3.zero;
+        card4.localPosition = Vector3.zero;
+
+        //将预设插入明牌区域
+        MahjongPrefab maj = new MahjongPrefab(newPrefab, GlobalData.MING_GANG_Width,-1);
+        user.mingGangPoint.InsertAt(index, maj,true);
+
+        //等待预设移动
+        yield return new WaitForSeconds(.5f);
+
+        //开始预设动作
+
+        //此处可播放特效start 
+
+        //特效end
+
+    }
+
+
     //添加明杠 或 暗杠
     public IEnumerator AddGang(UserCard user, CardActType type, MahjongPrefab card1, MahjongPrefab card2, MahjongPrefab card3, MahjongPrefab card4)
     {

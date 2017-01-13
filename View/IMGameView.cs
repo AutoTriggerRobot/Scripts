@@ -72,6 +72,7 @@ public enum Logic
     game_start,          //游戏开始
     get_handlecard,      //摸牌
     out_card,            //出牌
+    chi_hu,
     hu,                  //胡
 }
 

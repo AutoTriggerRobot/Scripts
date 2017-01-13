@@ -71,10 +71,9 @@ public class ProcessorModel:IMGameModel
     public OptionData.DataBase GetOption()
     {
         OptionData.DataBase optionData = new OptionData.DataBase();
-        optionData.card_direction = 0;
         optionData.dice_num = new int[2]{ UnityEngine.Random.Range(1, 7), UnityEngine.Random.Range(1, 7) };
-        //optionData.player_priority = UnityEngine.Random.Range(0, 4);
-        optionData.player_priority = 0;
+        optionData.player_priority = UnityEngine.Random.Range(0, 4);
+        //optionData.player_priority = 0;
         for(int i = 0; i < players.Length; ++i)
         {
             players[i] = new User(i);
@@ -85,30 +84,37 @@ public class ProcessorModel:IMGameModel
     //出牌等待（测试）
     public void WaitOrPush(int userID)
     {
-        //如果该用户为自动出牌则不等待
-        if(players[userID].ID < 0 || players[userID].TrusteeFlag || players[userID].TingFlag)
+        if(cardWare.Count == 0)
         {
-            switch(gameTip)
+            //游戏结束(测试 通知玩家可以开始新一局)
+            SetStatusFlag(userID, UserAction.end);
+        } else
+        {
+            //如果该用户为自动出牌则不等待
+            if(players[userID].ID < 0 || players[userID].TrusteeFlag || players[userID].TingFlag)
             {
-                case PlayerAct.add_gang:
-                    EndStatusFlag(userID, UserAction.add_gang);
-                    break;
-                case PlayerAct.gang:
-                    EndStatusFlag(userID, UserAction.gang_flag);
-                    break;
-                case PlayerAct.zi_mo:
-                    EndStatusFlag(userID, UserAction.hu_flag);
-                    break;
-                default:
-                    int indexOut = UnityEngine.Random.Range(0, HandCard[userID].Count);
-                    //用户随机出牌
-                    //并将摸的牌插入手牌
-                    int indexIn = UserOutCard(userID, indexOut);
-                    //更新字典
-                    UpdateCardLib(outCard);
-                    //传入 出牌id  插入id  出牌值
-                    SetStatusFlag(userID, UserAction.put_card, new List<int>() { indexOut, indexIn , outCard});
-                    break;
+                switch(gameTip)
+                {
+                    case PlayerAct.add_gang:
+                        EndStatusFlag(userID, UserAction.add_gang);
+                        break;
+                    case PlayerAct.gang:
+                        EndStatusFlag(userID, UserAction.gang_flag);
+                        break;
+                    case PlayerAct.zi_mo:
+                        EndStatusFlag(userID, UserAction.hu_flag);
+                        break;
+                    default:
+                        int indexOut = UnityEngine.Random.Range(0, HandCard[userID].Count);
+                        //用户随机出牌
+                        //并将摸的牌插入手牌
+                        int indexIn = UserOutCard(userID, indexOut);
+                        //更新字典
+                        UpdateCardLib(outCard);
+                        //传入 出牌id  插入id  出牌值
+                        SetStatusFlag(userID, UserAction.put_card, new List<int>() { indexOut, indexIn, outCard });
+                        break;
+                }
             }
         }
     }
@@ -160,13 +166,19 @@ public class ProcessorModel:IMGameModel
         //吃胡判断
         if(analysID != turnID)
         {
-            players[analysID].HuPaiList = AnalyseCard(HandCard[analysID]);
-            //查看出牌是否在胡牌列表 如果在就表示吃胡
-            int index = players[analysID].HuPaiList.FindIndex(cd => cd == outCard);
-            if(index > 0)
+            //先判断能不能吃
+            if(AnalysChiCard(analysID, outCard).Count > 0 || AnalyseGangPengCard(analysID, outCard).Count == 2)
             {
-                //吃胡 传入被吃的id 被吃的牌
-                SetStatusFlag(analysID, UserAction.chi_hu_flag, new List<int>() { turnID });
+                //传入出牌 如果返回了就表示吃胡
+                if(AnalyseCard(HandCard[analysID], outCard).Count > 0)
+                {
+                    //吃胡 传入被吃的id 被吃的牌
+                    SetStatusFlag(analysID, UserAction.chi_hu_flag, new List<int>() { turnID });
+                } else
+                {
+                    //没有结果继续判断
+                    OutCardAnalys();
+                }
             } else
             {
                 //没有结果继续判断
@@ -213,9 +225,6 @@ public class ProcessorModel:IMGameModel
             {
                 //碰 传入被碰玩家id  传入碰牌index
                 SetStatusFlag(analysID, UserAction.peng_card_flag, new List<int>() { turnID }, resultList);
-
-                //等待用户操作
-               // WaitOrPush();
             } else
             {
                 //没有结果继续判断
@@ -276,6 +285,7 @@ public class ProcessorModel:IMGameModel
     public void Reset()
     {
         cardWare = new List<int>(GlobalData.CardWare);
+        cardDic.Clear();
         for(int i = 0; i < 4; ++i)
         {
             HandCard[i] = new List<int>();
@@ -380,10 +390,8 @@ public class ProcessorModel:IMGameModel
         //自摸判断
         if(players[userID].HuPaiList == null)
         {
-            players[userID].HuPaiList = AnalyseCard(HandCard[userID]);
-            //查看出牌是否在胡牌列表 如果在就表示吃胡
-            int id = players[userID].HuPaiList.FindIndex(cd => cd == outCard);
-            if(id > 0)
+            //胡牌判断
+            if(AnalyseCard(HandCard[userID], handleCard).Count > 0)
             {
                 playerAct.Add((int)PlayerAct.zi_mo);
             }
@@ -943,7 +951,7 @@ public class ProcessorModel:IMGameModel
                 foreach(var item in HandCard[userID])
                     s += item +",";
                 s += "]";
-                Debug.Log("<color=red>" +s + HandCard[userID].Count +"</color>");
+                Debug.Log("<color=green>" +s + HandCard[userID].Count +"</color>");
                 //出牌判断
                 OutCardAnalys();
                 //下一个玩家判断                                                     

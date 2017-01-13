@@ -21,14 +21,13 @@ using PathologicalGames;
 public class MGameClient : MonoBehaviour, IMGameView
 {
     public int Frame = 60;                         //帧数
-    public Mesh[] Meshs;
     public int ID = 2333;                           //唯一ID
 
     new Camera camera;                              //主摄像机
     LayerMask mask;                                 //事件层级
     bool gameStartFlag = false;                     //游戏开始标志
     bool globalOperateFlag = false;                 //可控制标志
-    int index;                                      //取牌起始位置
+    public int index;                                      //取牌起始位置
     int insertID = 0;                               //手牌插入位置
     int selectHandCardID = -1;                      //当前选择的手牌ID
     int selectHandlecardID = -1;                    //当前选择的HandleCardID
@@ -79,7 +78,6 @@ public class MGameClient : MonoBehaviour, IMGameView
         gameAct = new MGameClientAction(this);
         gameData = new OptionData.DataBase(0);
         mask = 1 << 1;
-        Meshs = Resources.LoadAll<Mesh>("Model");
     }
 
     void Update()
@@ -133,6 +131,7 @@ public class MGameClient : MonoBehaviour, IMGameView
         if(vReady && GUILayout.Button("准备"))
         {
             vReady = false;
+            gameAct.Reset();
             control.EndStatusFlag(ID, UserAction.ready);
         }
         if(vPass && GUILayout.Button("过"))
@@ -359,16 +358,23 @@ public class MGameClient : MonoBehaviour, IMGameView
                         userPriority[i].handleCard[0].mesh.mesh = ResoucreMtr.Instance.GetMesh(cardData[4][0]);
                     yield return gameAct.TurnOverCard(userPriority[i]);
                 }
+                control.EndStatusFlag(userID, UserAction.hu);
                 break;
-
+            case Logic.chi_hu:
+                previousState = nextState;
+                nextState = Logic.empty;
+                //全局控制关闭
+                globalOperateFlag = false;
+                //玩家控制关闭并摊开玩家手牌
+                for(int i = 0; i < 4; ++i)
+                {
+                    userPriority[i].operateFlag = false;
+                    yield return gameAct.SortCard(userPriority[i], cardData[i]);
+                    yield return gameAct.TurnOverCard(userPriority[i]);
+                }
+                control.EndStatusFlag(userID, UserAction.hu);
+                break;
         }
-        yield return 0;
-    }
-
-    //托管逻辑
-    IEnumerator TrusteeCprocessor(int userID, int index)
-    {
-
         yield return 0;
     }
 
@@ -412,7 +418,7 @@ public class MGameClient : MonoBehaviour, IMGameView
         //吃掉出牌玩家刚出的牌
         MahjongPrefab card1 = userPriority[supID].outCardPoint.GetMahjongCard();
         yield return gameAct.AddHandleCard(userPriority[userID], card1);
-        nextState = Logic.hu;
+        nextState = Logic.chi_hu;
         yield return LogicCprocessor();
     }
 
@@ -426,6 +432,9 @@ public class MGameClient : MonoBehaviour, IMGameView
     /// <returns></returns>
     IEnumerator UserAddCangCard(int userID,int cardId,int outCardId,int cardType)
     {
+        MahjongPrefab card = userPriority[userID].handCard.GetMahjongCard(cardId);
+        card.mesh.mesh = ResoucreMtr.Instance.GetMesh(cardType);
+        yield return gameAct.InsertToAddGangCard(userPriority[userID], outCardId, card);
         //加杠
         yield return 0;
     }

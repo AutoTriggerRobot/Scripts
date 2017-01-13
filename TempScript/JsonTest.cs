@@ -21,7 +21,8 @@ using UnityEngine.UI;
 
 public class JsonTest: MonoBehaviour
 {
-    public byte[] card;
+    public string url;
+    public string Data;
     public List<Student> studens = new List<Student>();
     public Dictionary<string,Student> studenlib = new Dictionary<string, Student>();
     public Student stud1;
@@ -33,10 +34,9 @@ public class JsonTest: MonoBehaviour
     string jsonMsg;
     public MahjongMessage mahjongMsg = new MahjongMessage();
     public MahjongMessage mahjongMessage;
-
+    HTTPUnity http = new HTTPUnity();
     void Start()
     {
-        card = (byte[])(GlobalData.CardType.Clone());
         stud1 = new Student(2, "haha", 22, "boy");
         stud2 = new Student(5, "BiuBiuBiu", 55, "girl");
         studens.Add(stud1);
@@ -53,9 +53,21 @@ public class JsonTest: MonoBehaviour
 
     void OnGUI()
     {
+
+        if(GUILayout.Button("连接Url"))
+        {
+            StartCoroutine(http.GET(url));
+        }
+
+        if(GUILayout.Button("Send"))
+        {
+            StartCoroutine(http.PostBit(url, Data));
+        }
+
         if(GUILayout.Button("msgTojson"))
         {
             jsonMsg = JsonUtility.ToJson(mahjongMsg);
+            StartCoroutine(http.PostBit(url, jsonMsg));
             Debug.Log(jsonMsg);
         }
 
@@ -68,12 +80,14 @@ public class JsonTest: MonoBehaviour
         if(GUILayout.Button("list<t>->json"))
         {
             json = JsonUtility.ToJson(new Serialization<Student>(studens));
+            http.PostBit(url, json);
             Debug.Log(json);
         }
 
         if(GUILayout.Button("Dictionary<k,v>->json"))
         {
             jsonlib = JsonUtility.ToJson(new Serialization<string, Student>(studenlib));
+            http.PostBit(url, jsonlib);
             Debug.Log(jsonlib);
         }
 

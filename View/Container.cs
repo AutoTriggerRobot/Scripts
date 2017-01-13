@@ -55,7 +55,62 @@ public class Container: IEnumerable
     {
         get
         {
-            return childrenList[index];
+            try
+            {
+                //如果当前容器数量大于index
+                if(Count > index)
+                {
+
+                    //如果当前容器数量小于index+当前容器数量
+                    if(Count <= index + childrenList.Count)
+                    {
+                        int n;
+                        if(previousContainer != null)
+                           n = index - previousContainer.Count;
+                        else
+                            n = index;
+                        return childrenList[n];
+
+                    } else
+                    {
+                        //向前移动
+                        return previousContainer[index];
+                    }
+
+                } else
+                {
+                    //如果当前容器数量小于index则向后移动
+                    return nextContainer[index];
+                }
+            } catch(Exception e)
+            {
+                Debug.LogError("<Container::[]>: index out of range " + index);
+                throw new Exception(e.ToString());
+            }
+        }
+    }
+
+    //最前端容器
+    public Container FirstContainer
+    {
+        get
+        {
+            if(previousContainer != null)
+                return previousContainer.FirstContainer;
+            else
+                return this;
+        }
+    }
+
+    //最后端容器
+    public Container LastContainer
+    {
+        get
+        {
+            if(nextContainer != null)
+                return nextContainer.LastContainer;
+            else
+                return this;
         }
     }
 
@@ -197,12 +252,16 @@ public class Container: IEnumerable
         capacity = len;
     }
 
-    //返回容器子物体数量
+    //返回容器子物体总数量
     public int Count
     {
         get
         {
-            return childrenList.Count;
+            int len = childrenList.Count;
+            if(previousContainer != null)
+                return len += previousContainer.Count;
+            else
+                return childrenList.Count;
         }
     }
 
@@ -302,7 +361,14 @@ public class Container: IEnumerable
     }
 
     //在容器index处插入
-    public Vector3 InsertAt(int index, MahjongPrefab mahjong)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="index">插入id</param>
+    /// <param name="mahjong">预设</param>
+    /// <param name="isReSort">是否重新排列</param>
+    /// <returns></returns>
+    public Vector3 InsertAt(int index, MahjongPrefab mahjong,bool isReSort = false)
     {
         if(IsNotFull && mahjong.transform != null)
         {
@@ -326,8 +392,11 @@ public class Container: IEnumerable
             childrenList.Insert(index, mahjong);
             //重定位列表定位器 指向插入位置的后两个
             //重排插入处后面的子物体
-            ReSort(pointTemp + (direction * mahjong.interest) * transform.right,
-            index +1);
+            if(!isReSort)
+                ReSort(pointTemp + (direction * mahjong.interest) * transform.right,
+                index + 1);
+            else
+                ReSort();
             return pointTemp;
         }
         if(mahjong.transform)
@@ -344,36 +413,62 @@ public class Container: IEnumerable
     //移除容器中index的物体  isSort:移除后是否自动调用重排序 操作成功返回false
     public void RemoveAt(int index,bool isSort = true)
     {
-        if(childrenList.Count > 0)
+        try
         {
-            childrenList.RemoveAt(index);
-            //如果是普通容器则重排列表
-            if(type != ContainerTypes.Group && isSort)
+            //如果当前容器数量大于index
+            if(Count > index)
             {
-                //重排前初始化最后一个子物体位置 之前的位置已经无效了
-                ReSort(transform.position);
+
+                //如果当前容器数量小于index+当前容器数量
+                if(Count <= index + childrenList.Count)
+                {
+                    int n;
+                    if(previousContainer != null)
+                        n = index - previousContainer.Count;
+                    else
+                        n = index;
+                    childrenList.RemoveAt(n);
+                    //如果是普通容器则重排列表
+                    if(type != ContainerTypes.Group && isSort)
+                    {
+                        //重排前初始化最后一个子物体位置 之前的位置已经无效了
+                        ReSort(transform.position);
+                    }
+                } else
+                {
+                    //向前移动
+                    previousContainer.RemoveAt(index,isSort);
+                }
+
+            } else
+            {
+                //如果当前容器数量小于index则向后移动
+                nextContainer.RemoveAt(index, isSort);
             }
-        } else
-            Debug.Log("<Capaity::RemoveItem>: index out of range");
+        } catch(Exception e)
+        {
+            Debug.LogError("<Capaity::RemoveItem>: index out of range " + index);
+            throw new Exception(e.ToString());
+        }
     }
 
     /// <summary>
     /// 按序列获取物体并返回 
     /// </summary>
     /// <param name="direction">方向 大于0 从尾部获取   小于等于0 从头部获取</param>
-    /// <param name="len">从起始位置算起 第几个</param>
+    /// <param name="index">从起始位置算起 第几个</param>
     /// <param name="isSort">移除后是否自动调用重排序</param>
     /// <returns></returns>
-    public Transform GetCard(int len = 0, int direction = 1, bool isSort = true)
+    public Transform GetCard(int index = 0, int direction = 1, bool isSort = true)
     {
-        Transform tran = GetMahjongCard(len, direction, isSort).transform;
+        Transform tran = GetMahjongCard(index, direction, isSort).transform;
         if(tran)
             return tran;
         return null;
     }
 
     //获取预设 功能同上
-    public MahjongPrefab GetMahjongCard(int index = 0, int direction = 1, bool isSort = true)
+    public MahjongPrefab GetMahjongCard01(int index = 0, int direction = 1, bool isSort = true)
     {
         MahjongPrefab mahjong = new MahjongPrefab();
         try
@@ -396,7 +491,13 @@ public class Container: IEnumerable
                         mahjong = childrenList[childrenList.Count - 1 - index];
                         RemoveAt(childrenList.Count - 1 - index, isSort);
                         return mahjong;
-                    } 
+                    } else if(index >= childrenList.Count)
+                    {
+                        index -= childrenList.Count;
+                    } else
+                    {
+                        index = 0;
+                    }
                 }
                 //如果列表存在子物体且前容器不为空 则继续向前
                 if(previousContainer != null && !IsAllEmpty)
@@ -487,6 +588,40 @@ public class Container: IEnumerable
                 Debug.Log("麻将已经抽完");
                 return mahjong;
             }
+        } catch
+        {
+            Debug.Log("<Capaity::GetCard>: index out of range");
+            return mahjong;
+        }
+    }
+
+    //获取预设 功能同上
+    public MahjongPrefab GetMahjongCard(int index = 0, int direction = 1, bool isSort = true)
+    {
+        MahjongPrefab mahjong = new MahjongPrefab();
+        try
+        {
+            if(LastContainer.Count <= 0)
+            {
+                Debug.Log("麻将已经抽完");
+                return mahjong;
+            }
+            if(direction > 0)
+            {
+                //从后面算起
+                while(LastContainer.Count < index + 1)
+                    --index;
+                mahjong = LastContainer[LastContainer.Count - 1 - index];
+                LastContainer.RemoveAt(LastContainer.Count - 1 - index);
+            } else
+            {
+                //从前面算起
+                while(LastContainer.Count < index)
+                    --index;
+                mahjong = LastContainer[index];
+                LastContainer.RemoveAt(index);
+            }
+            return mahjong;
         } catch
         {
             Debug.Log("<Capaity::GetCard>: index out of range");

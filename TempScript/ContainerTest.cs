@@ -22,7 +22,7 @@ public class ContainerTest : MonoBehaviour
     MGameClientAction GameAct;
     ProcessorModel processorModel;
     List<int> test;
-
+    public int index;
 
     void Start()
     {
@@ -122,6 +122,18 @@ public class ContainerTest : MonoBehaviour
             StartCoroutine(GameAct.AddGang(GameAct.hostUser, CardActType.MingGang, tran1, tran2, tran3, tran4,()=>{
                 GameAct.hostUser.handCard.ReSort();
             }));
+        }
+
+        if(GUILayout.Button("补杠"))
+        {
+            //左边第2个开始 杠四个
+            MahjongPrefab tran1 = GameAct.hostUser.handCard.GetMahjongCard(2, 0, false);
+            StartCoroutine(GameAct.InsertToAddGangCard(GameAct.hostUser, index, tran1));
+        }
+
+        if(GUILayout.Button("resort"))
+        {
+
         }
 
         if(GUILayout.Button("暗杠"))
